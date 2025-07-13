@@ -6,5 +6,4 @@ namespace OrchidsShop.DAL.Repos;
 
 public interface IOrchidRepository : IRepository<Orchid>
 {
-    
 }

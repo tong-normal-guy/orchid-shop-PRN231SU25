@@ -1,12 +1,26 @@
+using OrchidsShop.API.Configurations;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddServicesConfig(builder.Configuration);
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
+// Register repositories and services by scutor
+// builder.Services.Scan(scan => scan
+//     .FromApplicationDependencies()
+//     .AddClasses(classes => classes.Where(type => type.Name.EndsWith("Repository")))
+//     .AsImplementedInterfaces()
+//     .WithTransientLifetime()
+// );
+
+// builder.Services.Scan(scan => scan
+//     .FromApplicationDependencies()
+//     .AddClasses(classes => classes.Where(type => type.Name.EndsWith("Service")))
+//     .AsImplementedInterfaces()
+//     .WithTransientLifetime()
+// );
+
+// Build the application without validating scopes to avoid startup issues
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -16,6 +30,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("Cors");
+app.UseRouting();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

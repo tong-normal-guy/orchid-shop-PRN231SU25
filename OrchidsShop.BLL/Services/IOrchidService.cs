@@ -1,8 +1,11 @@
 using System;
+using OrchidsShop.BLL.Commons.Results;
+using OrchidsShop.BLL.DTOs.Orchids.Requests;
+using OrchidsShop.BLL.DTOs.Orchids.Responses;
 
 namespace OrchidsShop.BLL.Services;
 
-public interface IOrchidServie
+public interface IOrchidService
 {
-
+    Task<OperationResult<List<QueryOrchidResponse>>> QueryOrchidsAsync(QueryOrchidRequest request);
 }
