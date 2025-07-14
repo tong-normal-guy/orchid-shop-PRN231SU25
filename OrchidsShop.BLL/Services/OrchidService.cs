@@ -7,6 +7,7 @@ using OrchidsShop.BLL.DTOs.Orchids.Responses;
 using OrchidsShop.DAL.Contexts;
 using OrchidsShop.DAL.Entities;
 using OrchidsShop.DAL.Repos;
+using OrchidsShop.BLL.Commons;
 
 namespace OrchidsShop.BLL.Services;
 
@@ -60,7 +61,7 @@ public class OrchidService : IOrchidService
     {
         var result = new OperationResult<bool>();
         
-        if (await _uow.Repository<Category>().FindAsync() == null)
+        if (await _uow.Repository<Category>().FindAsync(request.CategoryId) == null)
         {
             result.AddError(StatusCode.BadRequest, "No categories found.");
             return result;
@@ -87,6 +88,114 @@ public class OrchidService : IOrchidService
             "Orchid created successfully",
             true
             );
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Updates an existing orchid with new information.
+    /// </summary>
+    /// <param name="request">Command request containing orchid update data.</param>
+    /// <returns>OperationResult&lt;bool&gt; indicating success or failure.</returns>
+    public async Task<OperationResult<bool>> UpdateOrchidAsync(CommandOrchidRequest request)
+    {
+        var result = new OperationResult<bool>();
+        
+        if (request.Id == null)
+        {
+            result.AddError(StatusCode.BadRequest, "Orchid ID is required for update.");
+            return result;
+        }
+
+        var existingOrchid = await _uow.OrchidRepository
+            .SingleOrDefaultAsync(o => o.Id == request.Id);
+        
+        if (existingOrchid == null)
+        {
+            result.AddError(StatusCode.NotFound, "Orchid not found.");
+            return result;
+        }
+
+        // Check if category exists if CategoryId is provided
+        if (request.CategoryId != null)
+        {
+            var categoryExists = await _uow.Repository<Category>()
+                .SingleOrDefaultAsync(c => c.Id == request.CategoryId);
+            if (categoryExists == null)
+            {
+                result.AddError(StatusCode.BadRequest, "Category not found.");
+                return result;
+            }
+        }
+
+        // Check for duplicate name if name is being updated
+        if (!string.IsNullOrEmpty(request.Name) && request.Name != existingOrchid.Name)
+        {
+            var duplicateOrchid = await _uow.OrchidRepository
+                .SingleOrDefaultAsync(o => o.Name == request.Name && o.Id != request.Id);
+            
+            if (duplicateOrchid != null)
+            {
+                result.AddError(StatusCode.BadRequest, "Orchid with the same name already exists.");
+                return result;
+            }
+        }
+
+        // Use ReflectionHelper to update properties
+        ReflectionHepler.UpdateProperties(request, existingOrchid);
+        
+        _uow.OrchidRepository.Update(existingOrchid);
+        var saveResult = await _uow.SaveManualChangesAsync();
+
+        if (saveResult > 0)
+        {
+            result.AddResponseStatusCode(
+                StatusCode.Ok,
+                "Orchid updated successfully",
+                true
+            );
+        }
+        else
+        {
+            result.AddError(StatusCode.ServerError, "Failed to update orchid.");
+        }
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Deletes an orchid by its ID.
+    /// </summary>
+    /// <param name="id">The ID of the orchid to delete.</param>
+    /// <returns>OperationResult&lt;bool&gt; indicating success or failure.</returns>
+    public async Task<OperationResult<bool>> DeleteOrchidAsync(Guid id)
+    {
+        var result = new OperationResult<bool>();
+        
+        var existingOrchid = await _uow.OrchidRepository
+            .SingleOrDefaultAsync(o => o.Id == id);
+        
+        if (existingOrchid == null)
+        {
+            result.AddError(StatusCode.NotFound, "Orchid not found.");
+            return result;
+        }
+
+        await _uow.OrchidRepository.RemoveAsync(existingOrchid, false);
+        var saveResult = await _uow.SaveManualChangesAsync();
+
+        if (saveResult > 0)
+        {
+            result.AddResponseStatusCode(
+                StatusCode.Ok,
+                "Orchid deleted successfully",
+                true
+            );
+        }
+        else
+        {
+            result.AddError(StatusCode.ServerError, "Failed to delete orchid.");
+        }
         
         return result;
     }

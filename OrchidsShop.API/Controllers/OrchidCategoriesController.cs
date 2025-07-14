@@ -22,8 +22,8 @@ public class OrchidCategoriesController : Controller
     [SwaggerOperation(
         Summary = "Lấy danh sách các danh mục hoa lan",
         Description = "Truy xuất danh sách các danh mục hoa lan dựa trên các tham số truy vấn được cung cấp. " +
-                      "Hỗ trợ phân trang, lọc và sắp xếp. " +
-                      "Dùng chung cho lấy chi tiết danh mục theo ID, theo tên, tìm kiếm, lọc theo ID và tất cả các thao tác truy vấn khác.",
+                    "Hỗ trợ phân trang, lọc và sắp xếp. " +
+                    "Dùng chung cho lấy chi tiết danh mục theo ID, theo tên, tìm kiếm, lọc theo ID và tất cả các thao tác truy vấn khác.",
         OperationId = "GetOrchidCategories",
         Tags = new[] { "Orchid Categories" }
     )]

@@ -11,6 +11,7 @@ namespace OrchidsShop.API.Controllers;
 public class OrchidsController : ControllerBase
 {
     private readonly IOrchidService _orchidService;
+    private const string Tags = "Orchids";
 
     public OrchidsController(IOrchidService orchidService)
     {
@@ -24,7 +25,7 @@ public class OrchidsController : ControllerBase
                       "Hỗ trợ phân trang, lọc và sắp xếp." +
                       "Dùng chung cho lấy chi tiết hoa lan theo ID, theo tên, tìm kiếm, lọc theo ID và tất cả các thao tác truy vấn khác.",
         OperationId = "GetOrchids",
-        Tags = new[] { "Orchids" }
+        Tags = new[] { Tags }
     )]
     public async Task<IActionResult> GetOrchids([FromQuery] QueryOrchidRequest request)
     {

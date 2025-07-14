@@ -34,6 +34,9 @@ public static class ServicesConfig
     {
         services.AddScoped<IOrchidService, OrchidService>();
         services.AddScoped<OrchidCategoryService>();
+        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<AccountService>();
+        
         services.AddTransient<IOrchidRepository, OrchidRepository>();
 
         return services;

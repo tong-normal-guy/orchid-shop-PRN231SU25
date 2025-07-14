@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using LinqKit;
+using Microsoft.IdentityModel.Tokens;
 using OrchidsShop.BLL.Commons.Paginations;
 using OrchidsShop.DAL.Entities;
 
@@ -9,10 +10,18 @@ public class QueryOrchidRequest : PaginationRequest<Orchid>
 {
     public string? Search { get; set; }
     public bool? IsNarutal { get; set; }
-    public List<string>? Categories { get; set; }
+    
+    /// <summary>
+    /// A list of category names is separate by ","
+    /// </summary>
+    public string? Categories { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
-    public List<string>? Ids { get; set; }
+    
+    /// <summary>
+    /// A list of ids is separate by ","
+    /// </summary>
+    public string? Ids { get; set; }
     
     public override Expression<Func<Orchid, bool>> GetExpressions()
     {
@@ -32,9 +41,10 @@ public class QueryOrchidRequest : PaginationRequest<Orchid>
         }
 
         // Categories filter
-        if (Categories != null && Categories.Any())
+        if (!Categories.IsNullOrEmpty())
         {
-            predicate = predicate.And(x => Categories.Contains(x.CategoryId.ToString()));
+            var categoryNames = Categories.Split(',').ToList();
+            predicate = predicate.And(x => categoryNames.Contains(x.Category.Name));
         }
 
         // Price range filter
@@ -49,9 +59,10 @@ public class QueryOrchidRequest : PaginationRequest<Orchid>
         }
 
         // IDs filter
-        if (Ids != null && Ids.Any())
+        if (!Ids.IsNullOrEmpty())
         {
-            predicate = predicate.And(x => Ids.Contains(x.Id.ToString()));
+            var orchidIds = Ids.Split(',').Select(Guid.Parse).ToList();
+            predicate = predicate.And(x => orchidIds.Contains(x.Id));
         }
 
         return predicate;
