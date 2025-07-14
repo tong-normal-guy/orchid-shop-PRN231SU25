@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Carter;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using OrchidsShop.BLL.Commons;
@@ -32,6 +33,7 @@ public static class ServicesConfig
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
         services.AddScoped<IOrchidService, OrchidService>();
+        services.AddScoped<OrchidCategoryService>();
         services.AddTransient<IOrchidRepository, OrchidRepository>();
 
         return services;
@@ -43,10 +45,9 @@ public static class ServicesConfig
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                options.JsonSerializerOptions.PropertyNamingPolicy = null; // Use original property names
-                options.JsonSerializerOptions.DictionaryKeyPolicy = null; // Use original dictionary keys
+                // options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             });
+        services.AddCarter();
         services.AddCors(options =>
         {
             options.AddPolicy("Cors", builder =>

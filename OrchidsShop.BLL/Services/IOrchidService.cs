@@ -8,4 +8,5 @@ namespace OrchidsShop.BLL.Services;
 public interface IOrchidService
 {
     Task<OperationResult<List<QueryOrchidResponse>>> QueryOrchidsAsync(QueryOrchidRequest request);
+    Task<OperationResult<bool>> CreateOrchidAsync(CommandOrchidRequest request);
 }

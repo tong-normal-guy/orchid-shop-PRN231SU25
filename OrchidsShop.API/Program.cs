@@ -1,9 +1,9 @@
+using Carter;
 using OrchidsShop.API.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddServicesConfig(builder.Configuration);
-
 
 // Register repositories and services by scutor
 // builder.Services.Scan(scan => scan
@@ -36,6 +36,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapCarter();
 app.MapControllers();
 
 app.Run();

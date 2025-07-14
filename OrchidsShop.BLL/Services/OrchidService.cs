@@ -55,4 +55,39 @@ public class OrchidService : IOrchidService
             );
         return result;
     }
+
+    public async Task<OperationResult<bool>> CreateOrchidAsync(CommandOrchidRequest request)
+    {
+        var result = new OperationResult<bool>();
+        
+        if (await _uow.Repository<Category>().FindAsync() == null)
+        {
+            result.AddError(StatusCode.BadRequest, "No categories found.");
+            return result;
+        }
+        
+        var existingOrchid = await _uow.OrchidRepository
+            .SingleOrDefaultAsync(o => o.Name == request.Name);
+        
+        if (existingOrchid != null)
+        {
+            result.AddError(StatusCode.BadRequest, "Orchid with the same name already exists.");
+            return result;
+        }
+
+        var orchid = _mapper.Map<Orchid>(request);
+        var id = Guid.NewGuid();
+        orchid.Id = id;
+
+        await _uow.OrchidRepository.AddAsync(orchid);
+        await _uow.SaveChangesAsync();
+
+        result.AddResponseStatusCode(
+            StatusCode.Created,
+            "Orchid created successfully",
+            true
+            );
+        
+        return result;
+    }
 }

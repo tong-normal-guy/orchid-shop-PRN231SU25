@@ -39,8 +39,8 @@ public abstract class PaginationRequest<T> where T : class
     /// <summary>
     /// Column to sort by (default: CreatedAt)
     /// </summary>
-    [Display(Name = "SortColumn", Description = "Column to sort by (default: CreatedAt)")]
-    public string? SortColumn { get; set; } = "CreatedAt";
+    [Display(Name = "SortColumn", Description = "Column to sort by (default: empty)")]
+    public string? SortColumn { get; set; } = "";
 
     /// <summary>
     /// Sort direction (Asc or Desc, default: Desc)

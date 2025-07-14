@@ -18,6 +18,42 @@ public class QueryOrchidRequest : PaginationRequest<Orchid>
     {
         var predicate = PredicateBuilder.New<Orchid>(true);
 
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            predicate = predicate.And(x => x.Name.Contains(Search) || 
+                                          (x.Description != null && x.Description.Contains(Search)));
+        }
+
+        // Natural filter
+        if (IsNarutal.HasValue)
+        {
+            predicate = predicate.And(x => x.IsNatural == IsNarutal.Value);
+        }
+
+        // Categories filter
+        if (Categories != null && Categories.Any())
+        {
+            predicate = predicate.And(x => Categories.Contains(x.CategoryId.ToString()));
+        }
+
+        // Price range filter
+        if (MinPrice.HasValue)
+        {
+            predicate = predicate.And(x => x.Price >= MinPrice.Value);
+        }
+
+        if (MaxPrice.HasValue)
+        {
+            predicate = predicate.And(x => x.Price <= MaxPrice.Value);
+        }
+
+        // IDs filter
+        if (Ids != null && Ids.Any())
+        {
+            predicate = predicate.And(x => Ids.Contains(x.Id.ToString()));
+        }
+
         return predicate;
     }
     

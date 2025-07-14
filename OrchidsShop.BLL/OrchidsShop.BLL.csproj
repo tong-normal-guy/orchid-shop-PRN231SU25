@@ -16,8 +16,4 @@
     <ProjectReference Include="..\OrchidsShop.DAL\OrchidsShop.DAL.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\Categories\Requests\" />
-  </ItemGroup>
-
 </Project>

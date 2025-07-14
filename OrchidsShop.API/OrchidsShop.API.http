@@ -1,6 +1,219 @@
-@OrchidsShop.API_HostAddress = http://localhost:5077
+### Test Orchid API endpoints
 
-GET {{OrchidsShop.API_HostAddress}}/weatherforecast/
-Accept: application/json
+@OrchidsShop.API_HostAddress = http://localhost:5000
 
-###
+### Get all orchids
+GET {{OrchidsShop.API_HostAddress}}/api/v1/orchids
+
+### Create orchid
+POST {{OrchidsShop.API_HostAddress}}/api/v1/orchids
+Content-Type: application/json
+
+{
+  "name": "Orchid 1",
+  "description": "This is a beautiful orchid",
+  "url": "https://example.com/orchid1.jpg",
+  "price": 25.50,
+  "isNatural": true
+}
+
+### ===========================================
+### ORCHID CATEGORIES - ReflectionHelper Enhanced CRUD
+### ===========================================
+
+### USER'S REQUEST - CREATE CATEGORIES
+POST http://localhost:5077/api/orchid-categories
+Content-Type: application/json
+
+[
+    {
+        "name": "Phalaenopsis"
+    },
+    {
+        "name": "Cattleya"
+    },
+    {
+        "name": "Dendrobium"
+    },
+    {
+        "name": "Cymbidium"
+    }
+]
+
+### 1. GET all orchid categories (default pagination)
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories
+
+### 2. GET categories with pagination and search
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?pageNumber=1&pageSize=5&search=Phal
+
+### 3. GET categories by specific IDs (simulates get by ID)
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?ids=550e8400-e29b-41d4-a716-446655440000
+
+### 4. GET categories with sorting
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?sortColumn=Name&sortDir=Asc
+
+### 5. CREATE multiple orchid categories (main create function)
+POST {{OrchidsShop.API_HostAddress}}/api/orchid-categories
+Content-Type: application/json
+
+[
+  {
+    "name": "Phalaenopsis"
+  },
+  {
+    "name": "Cattleya"
+  },
+  {
+    "name": "Dendrobium"
+  },
+  {
+    "name": null
+  },
+  {
+    "name": ""
+  },
+  {
+    "name": "Phalaenopsis"
+  }
+]
+
+### 6. CREATE categories with some duplicates (should skip existing ones)
+POST {{OrchidsShop.API_HostAddress}}/api/orchid-categories
+Content-Type: application/json
+
+[
+  {
+    "name": "Vanda"
+  },
+  {
+    "name": "Oncidium"
+  },
+  {
+    "name": "Phalaenopsis"
+  }
+]
+
+### ===========================================
+### UPDATE METHODS - ReflectionHelper Enhanced
+### ===========================================
+
+### 7. FULL UPDATE category (ReflectionHelper with comprehensive validation)
+PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "name": "Phalaenopsis Updated"
+}
+
+### 8. PARTIAL UPDATE category (ReflectionHelper - only updates provided fields)
+PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "name": "Phalaenopsis Partial Update"
+}
+
+### 9. PARTIAL UPDATE with no changes (should detect no changes needed)
+PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "name": "Phalaenopsis Partial Update"
+}
+
+### 10. BULK UPDATE multiple categories (ReflectionHelper bulk operations)
+PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/bulk
+Content-Type: application/json
+
+{
+  "categoryIds": [
+    "550e8400-e29b-41d4-a716-446655440000",
+    "550e8400-e29b-41d4-a716-446655440001",
+    "550e8400-e29b-41d4-a716-446655440002"
+  ],
+  "updateData": {
+    "name": "Bulk Updated Category"
+  }
+}
+
+### 11. DELETE category (with referential integrity checks)
+DELETE {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+
+### ===========================================
+### ERROR HANDLING & VALIDATION EXAMPLES
+### ===========================================
+
+### 12. Create categories with all invalid values
+POST {{OrchidsShop.API_HostAddress}}/api/orchid-categories
+Content-Type: application/json
+
+[
+  {
+    "name": null
+  },
+  {
+    "name": ""
+  },
+  {
+    "name": "   "
+  }
+]
+
+### 13. Update with invalid name (too short)
+PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "name": "A"
+}
+
+### 14. Partial update with invalid name (too long - over 255 chars)
+PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "name": "This is a very long category name that exceeds the maximum allowed length of 255 characters and should trigger a validation error because it is way too long for a category name and will cause issues in the database and user interface display"
+}
+
+### 15. Bulk update with no category IDs
+PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/bulk
+Content-Type: application/json
+
+{
+  "categoryIds": [],
+  "updateData": {
+    "name": "Should Fail"
+  }
+}
+
+### 16. Bulk update with non-existent category IDs
+PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/bulk
+Content-Type: application/json
+
+{
+  "categoryIds": [
+    "00000000-0000-0000-0000-000000000000",
+    "11111111-1111-1111-1111-111111111111"
+  ],
+  "updateData": {
+    "name": "Non-existent Categories"
+  }
+}
+
+### 17. Update non-existent category
+PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "name": "Non-existent Category"
+}
+
+### 18. Partial update with empty request body
+PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+}
+
+### 19. Delete non-existent category
+DELETE {{OrchidsShop.API_HostAddress}}/api/orchid-categories/00000000-0000-0000-0000-000000000000
