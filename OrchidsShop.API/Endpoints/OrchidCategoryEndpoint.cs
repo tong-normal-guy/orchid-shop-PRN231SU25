@@ -19,22 +19,22 @@ public class OrchidCategoryEndpoint : ICarterModule
     {
         // GET all categories with pagination, filtering, and sorting
         // This handles all query operations including by ID, by name, search, etc.
-        app.MapGet(
-                Route,
-                async (QueryCategoryRequest request, OrchidCategoryService service) =>
-                {
-                    var result = await service.QueryOrchidCategoriesAsync(request);
-                    return result.IsError
-                        ? Results.BadRequest(new { 
-                            message = result.Message, 
-                            errors = result.Errors 
-                        })
-                        : Results.Ok(new { 
-                            message = result.Message, 
-                            data = result.Payload,
-                            pagination = result.MetaData 
-                        });
-                })
+        // app.MapGet(
+        //         Route,
+        //         async ([AsParameters]QueryCategoryRequest request, OrchidCategoryService service) =>
+        //         {
+        //             var result = await service.QueryOrchidCategoriesAsync(request);
+        //             return result.IsError
+        //                 ? Results.BadRequest(new { 
+        //                     message = result.Message, 
+        //                     errors = result.Errors 
+        //                 })
+        //                 : Results.Ok(new { 
+        //                     message = result.Message, 
+        //                     data = result.Payload,
+        //                     pagination = result.MetaData 
+        //                 });
+        //         })
             // .WithDisplayName("Query Orchid Categories")
             // .WithDescription("Retrieves orchid categories with pagination, filtering, and sorting. Supports search by name, filter by IDs, and all other query operations.")
             ;

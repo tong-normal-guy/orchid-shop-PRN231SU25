@@ -19,8 +19,12 @@ public class OrchidsController : ControllerBase
 
     [HttpGet]
     [SwaggerOperation(
-        Summary = "Get Orchids",
-        Description = "Retrieves a list of orchids based on the provided query parameters."
+        Summary = "Lấy danh sách các hoa lan",
+        Description = "Truy xuất danh sách các hoa lan dựa trên các tham số truy vấn được cung cấp. " +
+                      "Hỗ trợ phân trang, lọc và sắp xếp." +
+                      "Dùng chung cho lấy chi tiết hoa lan theo ID, theo tên, tìm kiếm, lọc theo ID và tất cả các thao tác truy vấn khác.",
+        OperationId = "GetOrchids",
+        Tags = new[] { "Orchids" }
     )]
     public async Task<IActionResult> GetOrchids([FromQuery] QueryOrchidRequest request)
     {
