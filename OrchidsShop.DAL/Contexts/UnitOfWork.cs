@@ -49,7 +49,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     
     public void SaveChanges()
     {
-        _context.SaveChangesAsync();
+        _context.SaveChanges();
     }
 
     public int SaveManualChanges()
@@ -69,7 +69,19 @@ public class UnitOfWork : IUnitOfWork, IDisposable
 
     public void Dispose()
     {
-        Dispose();
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _context?.Dispose();
+            }
+        }
+        _disposed = true;
     }
 }

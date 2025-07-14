@@ -1096,3 +1096,5 @@ $RECYCLE.BIN/
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/aspnetcore,dotenv,dotnetcore,csharp,linux,visualstudio,visualstudiocode,jetbrains+all,sublimetext,vim,nanoc,macos,windows,firebase,rider,test,dotsettings,dotfilessh
+
+.cursor

@@ -12,6 +12,7 @@ public class Repository<T> : IRepository<T> where T : class
 
     public Repository(DbContext dbContext)
     {
+        DbContext = dbContext;
     }
     
     public IQueryable<T?> Get()
