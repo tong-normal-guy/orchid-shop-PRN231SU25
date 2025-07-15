@@ -1,12 +1,17 @@
 using System;
 using System.Reflection;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json.Serialization;
 using Carter;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OrchidsShop.BLL.Commons;
 using OrchidsShop.BLL.Services;
 using OrchidsShop.DAL.Contexts;
+using OrchidsShop.DAL.Enums;
 using OrchidsShop.DAL.Repos;
 
 namespace OrchidsShop.API.Configurations;
@@ -26,6 +31,9 @@ public static class ServicesConfig
 
         // Register repositories and services
         services.AddServices();
+
+        // Add authentication and authorization
+        services.AddAuths(configuration);
 
         return services;
     }
@@ -51,13 +59,6 @@ public static class ServicesConfig
                 // options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             });
         services.AddCarter();
-        services.AddCors(options =>
-        {
-            options.AddPolicy("Cors", builder =>
-                builder.AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader());
-        });
 
         return services;
     }
@@ -78,6 +79,7 @@ public static class ServicesConfig
         services.AddSwaggerGen(opt =>
         {
             opt.CustomSchemaIds(type => type.FullName);
+            /*opt.SchemaGeneratorOptions*/
 
             opt.EnableAnnotations();
 
@@ -126,6 +128,57 @@ public static class ServicesConfig
         // Register UnitOfWork
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddAuths(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAuthentication(option =>
+        {
+            option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            option.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        }).AddJwtBearer(opt =>
+        {
+            opt.TokenValidationParameters = new TokenValidationParameters()
+            {
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!))
+            };
+            opt.RequireHttpsMetadata = false;
+            opt.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                    {
+                        context.Response.Headers.Add("Token-Expired", "true");
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+        services.AddAuthorization(option =>
+        {
+            option.AddPolicy(EnumAccountRole.ADMIN.ToString(), policy => policy.RequireClaim(ClaimTypes.Role, EnumAccountRole.ADMIN.ToString(), "true"));
+            option.AddPolicy(EnumAccountRole.CUSTOMER.ToString(), policy => policy.RequireClaim(ClaimTypes.Role, EnumAccountRole.CUSTOMER.ToString(), "true"));
+        });
+
+        // CORS
+        services.AddCors(options =>
+        {
+            options.AddPolicy("Cors",
+                builder =>
+                {
+                    builder.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
+        });
         return services;
     }
 }
