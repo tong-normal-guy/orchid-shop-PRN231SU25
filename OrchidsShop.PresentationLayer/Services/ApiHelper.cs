@@ -131,6 +131,59 @@ public class ApiHelper
             }
         }
 
+        // GET request for APIs that return a single object directly (Accounts API)
+        public async Task<ApiResponse<List<TData>>?> GetSingleAsync<TData>(string url)
+        {
+            try
+            {
+                AddAuthorizationHeader();
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    return new ApiResponse<List<TData>>
+                    {
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
+                }
+
+                var responseData = await response.Content.ReadAsStringAsync();
+                var singleObject = JsonSerializer.Deserialize<TData>(responseData, _jsonOptions);
+                
+                if (singleObject == null)
+                {
+                    return new ApiResponse<List<TData>>
+                    {
+                        Success = false,
+                        Message = "Failed to parse response",
+                        Errors = new List<string> { "Failed to parse response" }
+                    };
+                }
+
+                // Wrap single object in list to match expected format
+                return new ApiResponse<List<TData>>
+                {
+                    Success = true,
+                    Message = "Data retrieved successfully",
+                    Data = new List<TData> { singleObject },
+                    Pagination = null,
+                    Errors = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<TData>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
+            }
+        }
+
         // GET request with query parameters (Categories format)
         public async Task<ApiResponse<List<TData>>?> GetWithQueryAsync<TData>(string baseUrl, object queryParams)
         {

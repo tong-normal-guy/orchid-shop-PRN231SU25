@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using OrchidsShop.BLL.DTOs.Accounts.Requests;
 using OrchidsShop.BLL.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace OrchidsShop.API.Controllers
 {
@@ -105,6 +107,36 @@ namespace OrchidsShop.API.Controllers
         public async Task<IActionResult> GetAllRoles()
         {
             var result = await _service.GetAllRolesAsync();
+            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+        }
+
+        [HttpGet("profile")]
+        [SwaggerOperation(
+            Summary = "Lấy thông tin tài khoản hiện tại", 
+            Description = "Truy xuất thông tin chi tiết của tài khoản hiện tại từ JWT token." +
+                         "\n\n**Yêu cầu:** JWT token hợp lệ trong Authorization header" +
+                         "\n\n**Trả về:** Thông tin tài khoản được bao bọc trong danh sách (theo pattern OrchidShop)" +
+                         "\n\n**Sử dụng:** Xem chi tiết hồ sơ người dùng hiện tại",
+            Tags = new[] { Tags }
+        )]
+        public async Task<IActionResult> GetCurrentProfile()
+        {
+            // Extract user ID from JWT token
+            var userClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userClaim == null || !Guid.TryParse(userClaim.Value, out var userId))
+            {
+                return Unauthorized(new
+                {
+                    statusCode = "401",
+                    message = "Invalid or missing user token",
+                    isError = true,
+                    payload = (object?)null,
+                    metaData = (object?)null,
+                    errors = new[] { "User not authenticated or token invalid" }
+                });
+            }
+
+            var result = await _service.GetByIdAsync(userId);
             return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
         }
 

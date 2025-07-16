@@ -58,7 +58,17 @@ public class AccountApiService
     public async Task<ApiResponse<List<AccountModel>>?> GetAccountByIdAsync(Guid id)
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/{id}";
-        return await _apiHelper.GetAsync<AccountModel>(url);
+        return await _apiHelper.GetSingleAsync<AccountModel>(url);
+    }
+
+    /// <summary>
+    /// Lấy thông tin tài khoản hiện tại từ JWT token
+    /// </summary>
+    /// <returns>Thông tin tài khoản hiện tại</returns>
+    public async Task<ApiResponse<List<AccountModel>>?> GetCurrentProfileAsync()
+    {
+        var url = $"{StringValue.BaseUrl}{AccountEndpoint}/profile";
+        return await _apiHelper.GetSingleAsync<AccountModel>(url);
     }
 
     /// <summary>
