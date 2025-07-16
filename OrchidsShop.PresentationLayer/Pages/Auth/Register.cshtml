@@ -1,0 +1,273 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.Auth.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    ViewData["ActivePage"] = "Register";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-soft mt-5">
+                <div class="card-header text-center">
+                    <h3 class="mb-0">
+                        <i class="bi bi-person-plus me-2"></i>
+                        Create Account
+                    </h3>
+                    <p class="text-light mb-0">Join the Orchid Shop community</p>
+                </div>
+                
+                <div class="card-body p-4">
+                    @* Display validation errors *@
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    @* Display TempData messages *@
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            @TempData["SuccessMessage"]
+                        </div>
+                    }
+
+                    <form method="post" id="registerForm">
+                        <div class="mb-3">
+                            <label asp-for="RegisterRequest.Name" class="form-label">
+                                <i class="bi bi-person me-1"></i>Full Name
+                            </label>
+                            <input asp-for="RegisterRequest.Name" class="form-control" 
+                                   placeholder="Enter your full name" autocomplete="name" required>
+                            <span asp-validation-for="RegisterRequest.Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegisterRequest.Email" class="form-label">
+                                <i class="bi bi-envelope me-1"></i>Email Address
+                            </label>
+                            <input asp-for="RegisterRequest.Email" class="form-control" 
+                                   placeholder="Enter your email address" autocomplete="email" required>
+                            <span asp-validation-for="RegisterRequest.Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegisterRequest.Password" class="form-label">
+                                <i class="bi bi-lock me-1"></i>Password
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="RegisterRequest.Password" type="password" class="form-control" 
+                                       placeholder="Enter your password" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('RegisterRequest_Password', 'passwordToggleIcon1')">
+                                    <i class="bi bi-eye" id="passwordToggleIcon1"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="RegisterRequest.Password" class="text-danger small"></span>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    Password must be at least 6 characters long and contain letters and numbers.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegisterRequest.ConfirmPassword" class="form-label">
+                                <i class="bi bi-lock-fill me-1"></i>Confirm Password
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="RegisterRequest.ConfirmPassword" type="password" class="form-control" 
+                                       placeholder="Confirm your password" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('RegisterRequest_ConfirmPassword', 'passwordToggleIcon2')">
+                                    <i class="bi bi-eye" id="passwordToggleIcon2"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="RegisterRequest.ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RegisterRequest.Role" class="form-label">
+                                <i class="bi bi-people me-1"></i>Account Type
+                            </label>
+                            <select asp-for="RegisterRequest.Role" class="form-select" required>
+                                <option value="">Select account type</option>
+                                <option value="Customer" selected>Customer - Browse and purchase orchids</option>
+                                <option value="Staff">Staff - Manage inventory and orders</option>
+                            </select>
+                            <span asp-validation-for="RegisterRequest.Role" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="AgreeToTerms" class="form-check-input" type="checkbox" required>
+                            <label asp-for="AgreeToTerms" class="form-check-label">
+                                I agree to the <a href="#" onclick="showTerms()" class="text-decoration-none">Terms of Service</a> 
+                                and <a asp-page="/Privacy" class="text-decoration-none">Privacy Policy</a>
+                            </label>
+                            <span asp-validation-for="AgreeToTerms" class="text-danger small d-block"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                                <span class="spinner-border spinner-border-sm me-2 d-none" id="registerSpinner"></span>
+                                <i class="bi bi-person-plus me-2"></i>
+                                Create Account
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="mb-2">Already have an account?</p>
+                        <a asp-page="/Auth/Login" class="btn btn-outline-primary">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* Password Requirements (for reference) *@
+            <div class="card mt-3 border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info">
+                        <i class="bi bi-info-circle me-1"></i>Password Requirements
+                    </h6>
+                    <ul class="small text-muted mb-0">
+                        <li>At least 6 characters long</li>
+                        <li>Contains both letters and numbers</li>
+                        <li>Special characters are recommended</li>
+                        <li>Avoid common passwords</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function() {
+            // Focus on name input
+            $('#RegisterRequest_Name').focus();
+            
+            // Form submission handler
+            $('#registerForm').on('submit', function(e) {
+                const name = $('#RegisterRequest_Name').val();
+                const email = $('#RegisterRequest_Email').val();
+                const password = $('#RegisterRequest_Password').val();
+                const confirmPassword = $('#RegisterRequest_ConfirmPassword').val();
+                const role = $('#RegisterRequest_Role').val();
+                const agreeToTerms = $('#AgreeToTerms').is(':checked');
+                
+                // Basic validation
+                if (!name || !email || !password || !confirmPassword || !role) {
+                    e.preventDefault();
+                    showAlert('danger', 'Please fill in all required fields');
+                    return false;
+                }
+                
+                if (password !== confirmPassword) {
+                    e.preventDefault();
+                    showAlert('danger', 'Passwords do not match');
+                    return false;
+                }
+                
+                if (!agreeToTerms) {
+                    e.preventDefault();
+                    showAlert('danger', 'Please agree to the Terms of Service and Privacy Policy');
+                    return false;
+                }
+                
+                // Show loading state
+                showLoading(true);
+            });
+
+            // Real-time password confirmation validation
+            $('#RegisterRequest_ConfirmPassword').on('input', function() {
+                const password = $('#RegisterRequest_Password').val();
+                const confirmPassword = $(this).val();
+                const feedback = $(this).siblings('.text-danger');
+                
+                if (confirmPassword && password !== confirmPassword) {
+                    feedback.text('Passwords do not match');
+                    $(this).addClass('is-invalid');
+                } else {
+                    feedback.text('');
+                    $(this).removeClass('is-invalid');
+                }
+            });
+        });
+
+        // Toggle password visibility
+        function togglePassword(inputId, iconId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleIcon = document.getElementById(iconId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.className = 'bi bi-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.className = 'bi bi-eye';
+            }
+        }
+
+        // Show loading state on register button
+        function showLoading(show) {
+            const btn = document.getElementById('registerBtn');
+            const spinner = document.getElementById('registerSpinner');
+            
+            if (show) {
+                btn.disabled = true;
+                spinner.classList.remove('d-none');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Account...';
+            } else {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                btn.innerHTML = '<i class="bi bi-person-plus me-2"></i>Create Account';
+            }
+        }
+
+        // Show terms of service modal/alert
+        function showTerms() {
+            const terms = `
+                <strong>Terms of Service - Orchid Shop</strong><br><br>
+                1. By creating an account, you agree to provide accurate information.<br>
+                2. You are responsible for maintaining the security of your account.<br>
+                3. You agree to use our services in accordance with applicable laws.<br>
+                4. We reserve the right to suspend accounts that violate our policies.<br>
+                5. All purchases are subject to our return and refund policy.<br><br>
+                For complete terms, please contact us at support@orchidshop.com
+            `;
+            
+            showAlert('info', terms, 8000);
+        }
+
+        // Handle form errors and reset loading state
+        @if (!ViewData.ModelState.IsValid || TempData["ErrorMessage"] != null)
+        {
+            <text>
+            $(document).ready(function() {
+                showLoading(false);
+            });
+            </text>
+        }
+    </script>
+} 

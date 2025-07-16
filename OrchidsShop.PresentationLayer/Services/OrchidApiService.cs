@@ -28,10 +28,10 @@ public class OrchidApiService
         
         if (queryModel != null)
         {
-            return await _apiHelper.GetWithQueryAsync<OrchidModel>(baseUrl, queryModel);
+            return await _apiHelper.GetBllWithQueryAsync<OrchidModel>(baseUrl, queryModel);
         }
         
-        return await _apiHelper.GetAsync<OrchidModel>(baseUrl);
+        return await _apiHelper.GetBllAsync<OrchidModel>(baseUrl);
     }
 
     /// <summary>

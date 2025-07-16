@@ -22,7 +22,7 @@ public static class StringValue
     
     #region URL
 
-    public const string BaseUrl = "https://localhost:5077/api/";
+    public const string BaseUrl = "http://localhost:5077/api/";
 
     #endregion
 }

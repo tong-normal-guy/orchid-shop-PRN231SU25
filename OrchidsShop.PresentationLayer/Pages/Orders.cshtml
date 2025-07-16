@@ -1,0 +1,380 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.OrdersModel
+@{
+    ViewData["Title"] = "My Orders";
+    ViewData["ActivePage"] = "Orders";
+    
+    // Helper function to safely format DateOnly
+    string FormatDateOnly(DateOnly? date, string format = "MMM dd, yyyy")
+    {
+        if (!date.HasValue) return "Unknown date";
+        try
+        {
+            return date.Value.ToString(format);
+        }
+        catch
+        {
+            return date.Value.ToString("yyyy-MM-dd");
+        }
+    }
+}
+@{
+    var userEmail = ViewContext.HttpContext.Session.GetString("UserEmail");
+    var isLoggedIn = !string.IsNullOrEmpty(userEmail);
+}
+
+<div class="container mt-4">
+    @Html.AntiForgeryToken()
+    
+    @if (!isLoggedIn)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-soft">
+                    <div class="card-body text-center p-5">
+                        <i class="bi bi-lock text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                        <h4 class="mt-3">Authentication Required</h4>
+                        <p class="text-muted mb-4">Please sign in to view your order history.</p>
+                        <div class="d-flex gap-3 justify-content-center">
+                            <a asp-page="/Auth/Login" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                            </a>
+                            <a asp-page="/Auth/Register" class="btn btn-outline-primary">
+                                <i class="bi bi-person-plus me-2"></i>Create Account
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="gradient-text mb-1">
+                            <i class="bi bi-box-seam me-2"></i>My Orders
+                        </h2>
+                        <p class="text-muted">Track your orchid purchases and order history</p>
+                    </div>
+                    <a href="/?view=products" class="btn btn-primary">
+                        <i class="bi bi-flower1 me-2"></i>Continue Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        @Model.ErrorMessage
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Filter Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-soft">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-funnel me-2"></i>Filter Orders
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="filterForm" method="get">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="statusFilter" class="form-label">Status</label>
+                                    <select class="form-select" id="statusFilter" name="status">
+                                        <option value="">All Statuses</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Processing">Processing</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Shipped">Shipped</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="dateFrom" class="form-label">From Date</label>
+                                    <input type="date" class="form-control" id="dateFrom" name="fromDate">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="dateTo" class="form-label">To Date</label>
+                                    <input type="date" class="form-control" id="dateTo" name="toDate">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="searchFilter" class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="searchFilter" name="search" placeholder="Search orders...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary me-2">
+                                        <i class="bi bi-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                        <i class="bi bi-x-circle me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-soft">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Order History</h5>
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm" id="sortColumn" style="width: auto;">
+                                <option value="OrderDate">Order Date</option>
+                                <option value="TotalAmount">Total Amount</option>
+                                <option value="Status">Status</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="sortDirection" style="width: auto;">
+                                <option value="Desc">Descending</option>
+                                <option value="Asc">Ascending</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.HasOrders)
+                        {
+                            @foreach (var order in Model.Orders)
+                            {
+                                <div class="border rounded p-4 mb-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-2">
+                                            <div class="fw-bold">Order #@(order.Id?.ToString("N")[..8].ToUpper())</div>
+                                            <small class="text-muted">Placed on @FormatDateOnly(order.OrderDate)</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            @if (order.OrderDetails?.Any() == true)
+                                            {
+                                                var firstItem = order.OrderDetails.First();
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@(firstItem.Orchid?.Url ?? "/assets/logos/orchid-openai.png")" 
+                                                         class="rounded me-2" 
+                                                         style="width: 40px; height: 40px; object-fit: cover;" 
+                                                         alt="@(firstItem.Orchid?.Name ?? "Orchid")"
+                                                         onerror="this.src='/assets/logos/orchid-openai.png'">
+                                                    <div>
+                                                        <div class="fw-medium">@(firstItem.Orchid?.Name ?? "Unknown Orchid")</div>
+                                                        <small class="text-muted">
+                                                            Quantity: @(firstItem.Quantity ?? 0)
+                                                            @if (order.OrderDetails.Count() > 1)
+                                                            {
+                                                                <span>+ @(order.OrderDetails.Count() - 1) more</span>
+                                                            }
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-muted">No items</div>
+                                            }
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="fw-bold text-primary">$@(order.TotalAmount?.ToString("F2") ?? "0.00")</div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            @{
+                                                var statusClass = order.Status?.ToLower() switch
+                                                {
+                                                    "delivered" => "bg-success",
+                                                    "shipped" => "bg-info",
+                                                    "processing" => "bg-warning",
+                                                    "confirmed" => "bg-primary",
+                                                    "cancelled" => "bg-danger",
+                                                    _ => "bg-secondary"
+                                                };
+                                            }
+                                            <span class="badge @statusClass">@(order.Status ?? "Unknown")</span>
+                                        </div>
+                                        <div class="col-md-3 text-end">
+                                            <a href="/Orders/Details/@order.Id" class="btn btn-outline-primary btn-sm me-2">
+                                                <i class="bi bi-eye me-1"></i>View Details
+                                            </a>
+                                            @if (order.Status?.ToLower() == "processing" || order.Status?.ToLower() == "confirmed")
+                                            {
+                                                <button class="btn btn-outline-danger btn-sm" onclick="cancelOrder('@order.Id')">
+                                                    <i class="bi bi-x-circle me-1"></i>Cancel
+                                                </button>
+                                            }
+                                            else if (order.Status?.ToLower() == "shipped")
+                                            {
+                                                <button class="btn btn-outline-info btn-sm" onclick="trackOrder('@order.Id')">
+                                                    <i class="bi bi-truck me-1"></i>Track
+                                                </button>
+                                            }
+                                            else if (order.Status?.ToLower() == "delivered")
+                                            {
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="reorderItems('@order.Id')">
+                                                    <i class="bi bi-arrow-clockwise me-1"></i>Reorder
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-bag-x text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                                <h4 class="mt-3 text-muted">No orders yet</h4>
+                                <p class="text-muted">You haven't placed any orders yet. Start shopping to see your order history here!</p>
+                                <a href="/?view=products" class="btn btn-primary">
+                                    <i class="bi bi-flower1 me-2"></i>Start Shopping
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary Stats -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card shadow-soft text-center">
+                    <div class="card-body">
+                        <i class="bi bi-bag-check text-success" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2 mb-1">@Model.Orders.Count</h4>
+                        <p class="text-muted mb-0">Total Orders</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-soft text-center">
+                    <div class="card-body">
+                        <i class="bi bi-currency-dollar text-primary" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2 mb-1">$@Model.TotalSpent.ToString("F2")</h4>
+                        <p class="text-muted mb-0">Total Spent</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-soft text-center">
+                    <div class="card-body">
+                        <i class="bi bi-flower1 text-warning" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2 mb-1">@Model.TotalOrchidsPurchased</h4>
+                        <p class="text-muted mb-0">Orchids Purchased</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-soft text-center">
+                    <div class="card-body">
+                        <i class="bi bi-star-fill text-warning" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2 mb-1">@(Model.TotalSpent > 500 ? "Gold" : Model.TotalSpent > 200 ? "Silver" : "Bronze")</h4>
+                        <p class="text-muted mb-0">Customer Status</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Global functions for other actions
+        window.trackOrder = function(orderId) {
+            showAlert('info', `Order tracking for ${orderId} - Coming soon!`);
+        };
+
+        window.reorderItems = function(orderId) {
+            if (confirm('Add these items to your cart again?')) {
+                showAlert('success', 'Items added to cart!');
+            }
+        };
+
+        window.cancelOrder = function(orderId) {
+            if (confirm('Are you sure you want to cancel this order?')) {
+                showAlert('success', 'Order cancelled successfully');
+            }
+        };
+
+        window.setFilterValuesFromUrl = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            $('#statusFilter').val(urlParams.get('status') || '');
+            $('#dateFrom').val(urlParams.get('fromDate') || '');
+            $('#dateTo').val(urlParams.get('toDate') || '');
+            $('#searchFilter').val(urlParams.get('search') || '');
+            $('#sortColumn').val(urlParams.get('sortColumn') || 'OrderDate');
+            $('#sortDirection').val(urlParams.get('sortDir') || 'Desc');
+        };
+
+        window.applyFilters = function() {
+            const status = $('#statusFilter').val();
+            const fromDate = $('#dateFrom').val();
+            const toDate = $('#dateTo').val();
+            const search = $('#searchFilter').val();
+            const sortColumn = $('#sortColumn').val();
+            const sortDir = $('#sortDirection').val();
+
+            const params = new URLSearchParams();
+            if (status) params.append('status', status);
+            if (fromDate) params.append('fromDate', fromDate);
+            if (toDate) params.append('toDate', toDate);
+            if (search) params.append('search', search);
+            if (sortColumn) params.append('sortColumn', sortColumn);
+            if (sortDir) params.append('sortDir', sortDir);
+
+            window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        };
+
+        window.clearFilters = function() {
+            window.location.href = window.location.pathname;
+        };
+
+        window.showAlert = function(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            $('.container').prepend(alertHtml);
+            
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 5000);
+        };
+
+        // Document ready function
+        $(document).ready(function() {
+            // Set current filter values from URL parameters
+            setFilterValuesFromUrl();
+
+            // Handle sorting changes
+            $('#sortColumn, #sortDirection').change(function() {
+                applyFilters();
+            });
+
+            // Handle form submission
+            $('#filterForm').on('submit', function(e) {
+                e.preventDefault();
+                applyFilters();
+            });
+        });
+    </script>
+} 

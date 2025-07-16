@@ -1,10 +1,614 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = Model.ShowProductView ? "Products" : "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    .hero-section { 
+        background: linear-gradient(135deg, #8b4f9f 0%, #d4a5c4 100%); 
+        color: white; 
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        padding: 60px 0;
+    }
+    
+    .orchid-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .orchid-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 25px rgba(139, 79, 159, 0.2);
+    }
+    
+    .orchid-image {
+        height: 220px;
+        width: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+    
+    .price-tag {
+        background: linear-gradient(45deg, #8b4f9f, #6d3d7f);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        box-shadow: 0 2px 8px rgba(139, 79, 159, 0.3);
+    }
+    
+    .btn-orchid {
+        background: linear-gradient(45deg, #8b4f9f, #6d3d7f);
+        border: none;
+        color: white;
+        border-radius: 25px;
+        padding: 8px 20px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-orchid:hover {
+        background: linear-gradient(45deg, #6d3d7f, #5a2d6b);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139, 79, 159, 0.4);
+    }
+    
+    .gradient-text {
+        background: linear-gradient(45deg, #8b4f9f, #d4a5c4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: bold;
+    }
+    
+    .filter-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: none;
+        background: #fafafa;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #8b4f9f;
+        box-shadow: 0 0 0 0.2rem rgba(139, 79, 159, 0.1);
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #6c757d;
+        border-radius: 25px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #6c757d;
+        transform: translateY(-2px);
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .card-title {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+        height: 2.2rem;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .card-text {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        height: 3.6rem;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        margin-bottom: 1rem;
+    }
+    
+         /* Responsive Design */
+     @@media (max-width: 1200px) {
+         .orchid-image {
+             height: 200px;
+         }
+     }
+     
+     @@media (max-width: 992px) {
+         .hero-section {
+             min-height: 350px;
+             padding: 40px 0;
+         }
+         
+         .hero-section .display-4 {
+             font-size: 2.5rem;
+         }
+         
+         .filter-card {
+             margin-bottom: 2rem;
+         }
+     }
+     
+     @@media (max-width: 768px) {
+         .hero-section {
+             min-height: 300px;
+             text-align: center;
+             padding: 30px 0;
+         }
+         
+         .hero-section .display-4 {
+             font-size: 2rem;
+         }
+         
+         .hero-section .lead {
+             font-size: 1rem;
+         }
+         
+         .orchid-image {
+             height: 180px;
+         }
+         
+         .card-title {
+             font-size: 1rem;
+         }
+         
+         .price-tag {
+             font-size: 1rem;
+             padding: 6px 12px;
+         }
+         
+         .btn-orchid {
+             padding: 6px 16px;
+             font-size: 0.9rem;
+         }
+         
+         .d-flex.gap-3 {
+             flex-direction: column;
+             gap: 0.75rem !important;
+         }
+         
+         .btn-lg {
+             width: 100%;
+         }
+     }
+     
+     @@media (max-width: 576px) {
+         .container {
+             padding-left: 15px;
+             padding-right: 15px;
+         }
+         
+         .hero-section .display-4 {
+             font-size: 1.75rem;
+         }
+         
+         .orchid-image {
+             height: 160px;
+         }
+         
+         .card-body {
+             padding: 1rem;
+         }
+         
+         .price-tag {
+             font-size: 0.9rem;
+             padding: 5px 10px;
+         }
+     }
+    
+    /* Loading state */
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #6c757d;
+    }
+    
+    .empty-state img {
+        max-width: 200px;
+        opacity: 0.5;
+        margin-bottom: 1rem;
+    }
+</style>
+
+@* Hero Section *@
+@if (!Model.ShowProductView)
+{
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8 col-md-12">
+                    <h1 class="display-4 fw-bold mb-3">🌸 Beautiful Orchids</h1>
+                    <p class="lead mb-4">Discover our stunning collection of natural and artificial orchids. Perfect for home, office, or special occasions.</p>
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-light btn-lg" onclick="showAllOrchids()">
+image.png                            <i class="bi bi-shop me-2"></i>Browse All Products
+                        </button>
+                        <button class="btn btn-outline-light btn-lg" onclick="scrollToProducts()">
+                            <i class="bi bi-arrow-down me-2"></i>View Collection
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12 mt-4 mt-lg-0 text-center">
+                    <img src="~/assets/logos/orchid-openai.png" alt="Beautiful Orchids" 
+                         class="img-fluid rounded-3" style="max-height: 300px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));">
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@* Success/Error Message Display *@
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="container mt-3">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="container mt-3">
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+
+
+@* Main Content *@
+<div class="container my-5" id="productsSection">
+    <div class="row">
+        
+        @* Filters Sidebar *@
+        <div class="col-lg-3 col-md-4 mb-4">
+            <div class="card filter-card">
+                <div class="card-body">
+                    <h5 class="gradient-text mb-4">
+                        <i class="bi bi-funnel me-2"></i>Filters
+                    </h5>
+
+                    @* Search *@
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Search</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="searchInput" 
+                                   placeholder="Search orchids..." value="@Model.CurrentSearch">
+                        </div>
+                    </div>
+
+                    @* Category Filter *@
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Category</label>
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            @if (Model.Categories.Any())
+                            {
+                                @foreach (var category in Model.Categories)
+                                {
+                                    @if (category.Name == Model.CurrentCategory)
+                                    {
+                                        <option value="@category.Name" selected>@category.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@category.Name">@category.Name</option>
+                                    }
+                                }
+                            }
+
+                        </select>
+                    </div>
+
+                    @* Type Filter *@
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Type</label>
+                        <div class="mt-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="typeFilter" id="typeAll" value="" 
+                                       @(!Model.IsNatural.HasValue ? "checked" : "")>
+                                <label class="form-check-label" for="typeAll">All Types</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="typeFilter" id="typeNatural" value="true"
+                                       @(Model.IsNatural == true ? "checked" : "")>
+                                <label class="form-check-label" for="typeNatural">
+                                    <i class="bi bi-flower1 me-1"></i>Natural
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="typeFilter" id="typeArtificial" value="false"
+                                       @(Model.IsNatural == false ? "checked" : "")>
+                                <label class="form-check-label" for="typeArtificial">
+                                    <i class="bi bi-gem me-1"></i>Artificial
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Price Range *@
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Price Range</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="minPrice" placeholder="Min" 
+                                           value="@Model.MinPrice" min="0" step="0.01">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="maxPrice" placeholder="Max" 
+                                           value="@Model.MaxPrice" min="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-orchid w-100 mb-2" onclick="applyFilters()" id="applyFiltersBtn">
+                        <i class="bi bi-funnel me-2"></i>Apply Filters
+                    </button>
+                    
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Clear Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* Main Product Area *@
+        <div class="col-lg-9 col-md-8">
+            <div class="card filter-card">
+                <div class="card-body">
+                    @* Header *@
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div>
+                            <h2 class="gradient-text mb-1">
+                                @if (Model.ShowProductView) { <text><i class="bi bi-grid me-2"></i>All Orchids</text> } else { <text><i class="bi bi-collection me-2"></i>Our Collection</text> }
+                            </h2>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-check-circle me-1"></i>
+                                @(Model.Orchids.Count) orchid@(Model.Orchids.Count != 1 ? "s" : "") found
+                                @if (Model.Pagination != null)
+                                {
+                                    <span class="small">(Page @Model.Pagination.PageNumber of @Model.Pagination.TotalPages)</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 d-none d-sm-block fw-medium">Sort by:</label>
+                            <select class="form-select form-select-sm" id="sortSelect" style="min-width: 150px;">
+                                <option value="Name,Asc">Name A-Z</option>
+                                <option value="Name,Desc">Name Z-A</option>
+                                <option value="Price,Asc">Price Low-High</option>
+                                <option value="Price,Desc">Price High-Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    @* Product Grid *@
+                    <div class="row g-4" id="orchidGrid">
+                        @if (Model.Orchids.Any())
+                        {
+                            @foreach (var orchid in Model.Orchids)
+                            {
+                                <div class="col-xl-4 col-lg-6 col-md-6 col-sm-6">
+                                    <div class="card orchid-card h-100">
+                                        <div class="position-relative">
+                                            <img src="@(string.IsNullOrEmpty(orchid.Url) ? "/assets/logos/orchid-openai.png" : orchid.Url)" 
+                                                 class="card-img-top orchid-image" alt="@orchid.Name"
+                                                 onerror="this.src='/assets/logos/orchid-openai.png'">
+                                            @if (orchid.IsNatural == false)
+                                            {
+                                                <span class="badge bg-info position-absolute top-0 end-0 m-2">
+                                                    <i class="bi bi-gem me-1"></i>Artificial
+                                                </span>
+                                            }
+                                        </div>
+                                        
+                                        <div class="card-body d-flex flex-column">
+                                            <h6 class="card-title gradient-text">@orchid.Name</h6>
+                                            <p class="card-text text-muted small flex-grow-1">
+                                                @(string.IsNullOrEmpty(orchid.Description) ? "Beautiful orchid with elegant blooms, perfect for any occasion." : orchid.Description)
+                                            </p>
+                                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                                <span class="price-tag">$@orchid.Price?.ToString("F2")</span>
+                                                <button class="btn btn-orchid btn-sm add-to-cart-btn" 
+                                                        data-orchid-id="@orchid.Id" 
+                                                        data-orchid-name="@orchid.Name" 
+                                                        data-orchid-price="@orchid.Price" 
+                                                        data-orchid-image="@(string.IsNullOrEmpty(orchid.Url) ? "/assets/logos/orchid-openai.png" : orchid.Url)" 
+                                                        title="Add to Cart">
+                                                    <i class="bi bi-cart-plus me-1"></i>Add to Cart
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="col-12">
+                                <div class="empty-state">
+                                    <img src="/assets/logos/orchid-openai.png" alt="No orchids found" class="mb-3">
+                                    <h4 class="text-muted">No orchids found</h4>
+                                    <p class="text-muted">@if (Model.ShowProductView) { <text>Try adjusting your filters or search terms to find what you're looking for.</text> } else { <text>There are currently no orchids available in our collection.</text> }</p>
+                                    @if (!Model.ShowProductView)
+                                    {
+                                        <button class="btn btn-orchid btn-lg mt-3" onclick="window.location.reload()">
+                                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Page
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    @* Show Browse Products Button on Home Page *@
+                    @if (!Model.ShowProductView && Model.Orchids.Any())
+                    {
+                        <div class="text-center mt-5">
+                            <button class="btn btn-orchid btn-lg" onclick="showAllOrchids()">
+                                <i class="bi bi-search me-2"></i>Browse with Filters
+                                <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        function showAllOrchids() {
+            window.location.href = '/?view=products';
+        }
+
+        function scrollToProducts() {
+            document.getElementById('productsSection').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+
+        function applyFilters() {
+            const applyBtn = document.getElementById('applyFiltersBtn');
+            const originalText = applyBtn.innerHTML;
+            
+            // Show loading state
+            applyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Applying...';
+            applyBtn.disabled = true;
+            
+            const search = document.getElementById('searchInput').value;
+            const category = document.getElementById('categoryFilter').value;
+            const typeFilter = document.querySelector('input[name="typeFilter"]:checked')?.value;
+            const minPrice = document.getElementById('minPrice').value;
+            const maxPrice = document.getElementById('maxPrice').value;
+            const sort = document.getElementById('sortSelect').value.split(',');
+
+            const params = new URLSearchParams();
+            if (search) params.append('search', search);
+            if (category) params.append('category', category);
+            if (typeFilter) params.append('isNatural', typeFilter);
+            if (minPrice) params.append('minPrice', minPrice);
+            if (maxPrice) params.append('maxPrice', maxPrice);
+            if (sort.length === 2) {
+                params.append('sortBy', sort[0]);
+                params.append('sortDir', sort[1]);
+            }
+            params.append('view', 'products');
+
+            window.location.href = '/?' + params.toString();
+        }
+
+        function clearFilters() {
+            window.location.href = '/?view=products';
+        }
+
+        // Cart animation handler - called after the main addToCart function
+        function handleCartAnimation(buttonElement) {
+            const originalText = buttonElement.innerHTML;
+            
+            buttonElement.innerHTML = '<i class="bi bi-check me-1"></i>Added!';
+            buttonElement.className = 'btn btn-success btn-sm';
+            buttonElement.disabled = true;
+            
+            setTimeout(() => {
+                buttonElement.innerHTML = originalText;
+                buttonElement.className = 'btn btn-orchid btn-sm';
+                buttonElement.disabled = false;
+            }, 2000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current sort option
+            const sortSelect = document.getElementById('sortSelect');
+            const currentSort = '@Model.SortColumn,@Model.SortDirection';
+            sortSelect.value = currentSort;
+            
+            // Add change listener for sort
+            sortSelect.addEventListener('change', applyFilters);
+            
+            // Add enter key support for search
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
+            
+            // Add enter key support for price inputs
+            document.getElementById('minPrice').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
+            
+            document.getElementById('maxPrice').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
+
+            // Add event listeners for add to cart buttons
+            setupAddToCartEventListeners();
+        });
+
+        // Setup event listeners for add to cart buttons
+        function setupAddToCartEventListeners() {
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const orchidId = this.getAttribute('data-orchid-id');
+                    const orchidName = this.getAttribute('data-orchid-name');
+                    const orchidPrice = parseFloat(this.getAttribute('data-orchid-price'));
+                    const orchidImage = this.getAttribute('data-orchid-image');
+                    
+                    if (addToCart(orchidId, orchidName, orchidPrice, orchidImage)) {
+                        handleCartAnimation(this);
+                    }
+                });
+            });
+        }
+    </script>
+}

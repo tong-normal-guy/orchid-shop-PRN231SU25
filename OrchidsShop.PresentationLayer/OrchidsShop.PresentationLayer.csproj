@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Scrutor" Version="6.1.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
   </ItemGroup>
 
 </Project>

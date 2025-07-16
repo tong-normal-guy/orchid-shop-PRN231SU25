@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace OrchidsShop.PresentationLayer.Models.Accounts;
 
 /// <summary>
@@ -29,7 +31,14 @@ public class AccountRequestModel
 /// </summary>
 public class LoginRequestModel
 {
+    [Required(ErrorMessage = "Email is required")]
+    /*[EmailAddress(ErrorMessage = "Please enter a valid email address")]*/
+    [Display(Name = "Email Address")]
     public string? Email { get; set; }
+
+    [Required(ErrorMessage = "Password is required")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Password")]
     public string? Password { get; set; }
 }
 
@@ -38,9 +47,29 @@ public class LoginRequestModel
 /// </summary>
 public class RegisterRequestModel
 {
-    public string? Email { get; set; }
+    [Required(ErrorMessage = "Full name is required")]
+    [StringLength(100, ErrorMessage = "Name cannot be longer than 100 characters")]
+    [Display(Name = "Full Name")]
     public string? Name { get; set; }
+
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    [Display(Name = "Email Address")]
+    public string? Email { get; set; }
+
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters long")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Password")]
     public string? Password { get; set; }
+
+    [Required(ErrorMessage = "Password confirmation is required")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Confirm Password")]
+    [Compare("Password", ErrorMessage = "The password and confirmation password do not match")]
     public string? ConfirmPassword { get; set; }
+
+    [Required(ErrorMessage = "Please select an account type")]
+    [Display(Name = "Account Type")]
     public string? Role { get; set; }
 } 

@@ -128,9 +128,9 @@ public partial class OrchidShopDbContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("status");
-            entity.Property(e => e.TotalAmound)
+            entity.Property(e => e.TotalAmount)
                 .HasColumnType("decimal(8, 2)")
-                .HasColumnName("total_amound");
+                .HasColumnName("total_amount");
 
             entity.HasOne(d => d.Account).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.AccountId)

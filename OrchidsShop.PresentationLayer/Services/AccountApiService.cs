@@ -22,10 +22,10 @@ public class AccountApiService
     /// </summary>
     /// <param name="loginRequest">Thông tin đăng nhập</param>
     /// <returns>Kết quả đăng nhập</returns>
-    public async Task<ApiOperationResponse?> LoginAsync(LoginRequestModel loginRequest)
+    public async Task<LoginResponse?> LoginAsync(LoginRequestModel loginRequest)
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/login";
-        return await _apiHelper.PostAsync(url, loginRequest);
+        return await _apiHelper.PostLoginAsync(url, loginRequest);
     }
 
     /// <summary>
@@ -58,7 +58,17 @@ public class AccountApiService
     public async Task<ApiResponse<List<AccountModel>>?> GetAccountByIdAsync(Guid id)
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/{id}";
-        return await _apiHelper.GetAsync<AccountModel>(url);
+        return await _apiHelper.GetSingleAsync<AccountModel>(url);
+    }
+
+    /// <summary>
+    /// Lấy thông tin tài khoản hiện tại từ JWT token
+    /// </summary>
+    /// <returns>Thông tin tài khoản hiện tại</returns>
+    public async Task<ApiResponse<List<AccountModel>>?> GetCurrentProfileAsync()
+    {
+        var url = $"{StringValue.BaseUrl}{AccountEndpoint}/profile";
+        return await _apiHelper.GetSingleAsync<AccountModel>(url);
     }
 
     /// <summary>
@@ -151,6 +161,24 @@ public class AccountApiService
         catch
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Lấy tài khoản theo email
+    /// </summary>
+    /// <param name="email">Email của tài khoản</param>
+    /// <returns>Thông tin tài khoản</returns>
+    public async Task<ApiResponse<List<AccountModel>>?> GetAccountByEmailAsync(string email)
+    {
+        try
+        {
+            var url = $"{StringValue.BaseUrl}{AccountEndpoint}/by-email?email={Uri.EscapeDataString(email)}";
+            return await _apiHelper.GetAsync<AccountModel>(url);
+        }
+        catch
+        {
+            return null;
         }
     }
 } 

@@ -11,6 +11,7 @@ public class OrderModel
     public Guid? Id { get; set; }
     public DateOnly? OrderDate { get; set; }
     public decimal? TotalAmount { get; set; }
+    public string? Status { get; set; }
     public AccountModel? Account { get; set; }
     public IEnumerable<OrderDetailModel>? OrderDetails { get; set; }
 }
@@ -45,6 +46,7 @@ public class OrderDetailRequestModel
     public Guid? Id { get; set; }
     public Guid? OrchidId { get; set; }
     public int? Quantity { get; set; }
+    public decimal? Price { get; set; }
 }
 
 /// <summary>
@@ -57,6 +59,7 @@ public class OrderQueryModel
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public Guid? AccountId { get; set; }
+    public string? Ids { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
     public string? SortColumn { get; set; }

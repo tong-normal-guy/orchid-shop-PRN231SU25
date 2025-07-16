@@ -1,0 +1,432 @@
+@page "{id:guid}"
+@model OrchidsShop.PresentationLayer.Pages.Orders.DetailsModel
+@{
+    ViewData["Title"] = "Order Details";
+    ViewData["ActivePage"] = "Orders";
+    
+    // Helper function to safely format DateOnly
+    string FormatDateOnly(DateOnly? date, string format = "MMMM dd, yyyy")
+    {
+        if (!date.HasValue) return "Unknown date";
+        try
+        {
+            return date.Value.ToString(format);
+        }
+        catch
+        {
+            return date.Value.ToString("yyyy-MM-dd");
+        }
+    }
+}
+@{
+    var userEmail = ViewContext.HttpContext.Session.GetString("UserEmail");
+    var isLoggedIn = !string.IsNullOrEmpty(userEmail);
+}
+
+<div class="container mt-4">
+    @if (!isLoggedIn)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-soft">
+                    <div class="card-body text-center p-5">
+                        <i class="bi bi-lock text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                        <h4 class="mt-3">Authentication Required</h4>
+                        <p class="text-muted mb-4">Please sign in to view order details.</p>
+                        <div class="d-flex gap-3 justify-content-center">
+                            <a asp-page="/Auth/Login" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                            </a>
+                            <a asp-page="/Auth/Register" class="btn btn-outline-primary">
+                                <i class="bi bi-person-plus me-2"></i>Create Account
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (Model.Order == null)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-soft">
+                    <div class="card-body text-center p-5">
+                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem; opacity: 0.3;"></i>
+                        <h4 class="mt-3">Order Not Found</h4>
+                        <p class="text-muted mb-4">The order you're looking for doesn't exist or you don't have permission to view it.</p>
+                        <a href="/Orders" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Orders
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Header with Back Button -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Orders" class="btn btn-outline-secondary mb-2">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Orders
+                        </a>
+                        <h2 class="gradient-text mb-1">
+                            <i class="bi bi-receipt me-2"></i>Order Details
+                        </h2>
+                        <p class="text-muted">Order #@(Model.Order.Id?.ToString("N")[..8].ToUpper())</p>
+                    </div>
+                    <div class="text-end">
+                        @{
+                            var statusClass = Model.Order.Status?.ToLower() switch
+                            {
+                                "delivered" => "bg-success",
+                                "shipped" => "bg-info",
+                                "processing" => "bg-warning",
+                                "confirmed" => "bg-primary",
+                                "cancelled" => "bg-danger",
+                                _ => "bg-secondary"
+                            };
+                        }
+                        <span class="badge @statusClass fs-6 px-3 py-2">@(Model.Order.Status ?? "Unknown")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        @Model.ErrorMessage
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <!-- Order Information -->
+            <div class="col-lg-8">
+                <div class="card shadow-soft mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-box-seam me-2"></i>Order Items
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.Order.OrderDetails?.Any() == true)
+                        {
+                            @foreach (var item in Model.Order.OrderDetails)
+                            {
+                                <div class="border rounded p-3 mb-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-2">
+                                            <img src="@(item.Orchid?.Url ?? "/assets/logos/orchid-openai.png")" 
+                                                 class="img-fluid rounded" 
+                                                 style="width: 80px; height: 80px; object-fit: cover;" 
+                                                 alt="@(item.Orchid?.Name ?? "Orchid")"
+                                                 onerror="this.src='/assets/logos/orchid-openai.png'">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="mb-1">@(item.Orchid?.Name ?? "Unknown Orchid")</h6>
+                                            <p class="text-muted mb-1 small">@(item.Orchid?.Description ?? "No description available")</p>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="bi bi-tag me-1"></i>@(item.Orchid?.Category?.Name ?? "Uncategorized")
+                                                </span>
+                                                <span class="badge @(item.Orchid?.IsNatural == true ? "bg-success" : "bg-info")">
+                                                    <i class="bi bi-flower1 me-1"></i>@(item.Orchid?.IsNatural == true ? "Natural" : "Artificial")
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-center">
+                                            <div class="fw-bold">Qty: @(item.Quantity ?? 0)</div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <div class="fw-bold text-primary">$@(item.Price?.ToString("F2") ?? "0.00")</div>
+                                            <div class="text-muted small">Total: $@(((item.Price ?? 0) * (item.Quantity ?? 0)).ToString("F2"))</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-box text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+                                <p class="text-muted mt-2">No items found in this order.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Order Timeline -->
+                <div class="card shadow-soft">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2"></i>Order Timeline
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-primary"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Order Placed</h6>
+                                    <p class="text-muted mb-0">@FormatDateOnly(Model.Order.OrderDate)</p>
+                                </div>
+                            </div>
+                            
+                            @if (Model.Order.Status?.ToLower() == "processing" || Model.Order.Status?.ToLower() == "confirmed" || 
+                                 Model.Order.Status?.ToLower() == "shipped" || Model.Order.Status?.ToLower() == "delivered")
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-warning"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Processing</h6>
+                                        <p class="text-muted mb-0">Order is being prepared for shipment</p>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Order.Status?.ToLower() == "confirmed" || Model.Order.Status?.ToLower() == "shipped" || 
+                                 Model.Order.Status?.ToLower() == "delivered")
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-info"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Confirmed</h6>
+                                        <p class="text-muted mb-0">Order has been confirmed and is ready for shipping</p>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Order.Status?.ToLower() == "shipped" || Model.Order.Status?.ToLower() == "delivered")
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-info"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Shipped</h6>
+                                        <p class="text-muted mb-0">Order has been shipped and is on its way</p>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Order.Status?.ToLower() == "delivered")
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Delivered</h6>
+                                        <p class="text-muted mb-0">Order has been successfully delivered</p>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Order.Status?.ToLower() == "cancelled")
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-danger"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Cancelled</h6>
+                                        <p class="text-muted mb-0">Order has been cancelled</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="col-lg-4">
+                <div class="card shadow-soft mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-calculator me-2"></i>Order Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>$@(Model.Order.TotalAmount?.ToString("F2") ?? "0.00")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span>Free</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax:</span>
+                            <span>$0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between fw-bold">
+                            <span>Total:</span>
+                            <span class="text-primary">$@(Model.Order.TotalAmount?.ToString("F2") ?? "0.00")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div class="card shadow-soft mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person me-2"></i>Customer Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Name</label>
+                            <div class="fw-medium">@(Model.Order.Account?.Name ?? "N/A")</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Email</label>
+                            <div class="fw-medium">@(Model.Order.Account?.Email ?? "N/A")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Actions -->
+                <div class="card shadow-soft">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-gear me-2"></i>Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            @if (Model.Order.Status?.ToLower() == "processing" || Model.Order.Status?.ToLower() == "confirmed")
+                            {
+                                <button class="btn btn-outline-danger" onclick="cancelOrder('@Model.Order.Id')">
+                                    <i class="bi bi-x-circle me-2"></i>Cancel Order
+                                </button>
+                            }
+                            else if (Model.Order.Status?.ToLower() == "shipped")
+                            {
+                                <button class="btn btn-outline-info" onclick="trackOrder('@Model.Order.Id')">
+                                    <i class="bi bi-truck me-2"></i>Track Order
+                                </button>
+                            }
+                            else if (Model.Order.Status?.ToLower() == "delivered")
+                            {
+                                <button class="btn btn-outline-success" onclick="reorderItems('@Model.Order.Id')">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Reorder Items
+                                </button>
+                            }
+                            
+                            <!-- Print and Download buttons hidden for future use -->
+                            <!--
+                            <button class="btn btn-outline-secondary" onclick="printOrder()">
+                                <i class="bi bi-printer me-2"></i>Print Order
+                            </button>
+                            
+                            <button class="btn btn-outline-primary" onclick="downloadInvoice()">
+                                <i class="bi bi-download me-2"></i>Download Invoice
+                            </button>
+                            -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #e9ecef;
+}
+
+.timeline-content {
+    padding-left: 20px;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+</style>
+
+@section Scripts {
+    <script>
+        function cancelOrder(orderId) {
+            if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+                // TODO: Implement cancel order API call
+                showAlert('success', 'Order cancellation request submitted successfully');
+            }
+        }
+
+        function trackOrder(orderId) {
+            // TODO: Implement order tracking
+            showAlert('info', 'Order tracking feature coming soon!');
+        }
+
+        function reorderItems(orderId) {
+            if (confirm('Add all items from this order to your cart?')) {
+                // TODO: Implement reorder functionality
+                showAlert('success', 'Items added to cart successfully!');
+            }
+        }
+
+        function printOrder() {
+            window.print();
+        }
+
+        function downloadInvoice() {
+            // TODO: Implement invoice download
+            showAlert('info', 'Invoice download feature coming soon!');
+        }
+
+        function showAlert(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            $('.container').prepend(alertHtml);
+            
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+    </script>
+} 

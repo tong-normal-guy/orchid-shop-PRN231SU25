@@ -1,0 +1,219 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.Auth.LoginModel
+@{
+    ViewData["Title"] = "Login";
+    ViewData["ActivePage"] = "Login";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-soft mt-5">
+                <div class="card-header text-center">
+                    <h3 class="mb-0">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        Welcome Back
+                    </h3>
+                    <p class="text-light mb-0">Sign in to your Orchid Shop account</p>
+                </div>
+                
+                <div class="card-body p-4">
+                    @* Display validation errors *@
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    @* Display TempData messages *@
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            @TempData["SuccessMessage"]
+                        </div>
+                    }
+
+                    <form method="post" id="loginForm">
+                        <div class="mb-3">
+                            <label asp-for="LoginRequest.Email" class="form-label">
+                                <i class="bi bi-envelope me-1"></i>Email Address
+                            </label>
+                            <input asp-for="LoginRequest.Email" class="form-control" 
+                                   placeholder="Enter your email" autocomplete="email" required>
+                            <span asp-validation-for="LoginRequest.Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LoginRequest.Password" class="form-label">
+                                <i class="bi bi-lock me-1"></i>Password
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="LoginRequest.Password" type="password" class="form-control" 
+                                       placeholder="Enter your password" autocomplete="current-password" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                    <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="LoginRequest.Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="RememberMe" class="form-check-input" type="checkbox">
+                            <label asp-for="RememberMe" class="form-check-label">
+                                Remember me for 30 days
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                <span class="spinner-border spinner-border-sm me-2 d-none" id="loginSpinner"></span>
+                                <i class="bi bi-box-arrow-in-right me-2"></i>
+                                Sign In
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="mb-2">Don't have an account?</p>
+                        <a asp-page="/Auth/Register" class="btn btn-outline-primary">
+                            <i class="bi bi-person-plus me-2"></i>Create Account
+                        </a>
+                    </div>
+
+                    @* Forgot Password Link *@
+                    <div class="text-center mt-3">
+                        <a href="#" class="text-muted text-decoration-none small" onclick="showForgotPassword()">
+                            <i class="bi bi-question-circle me-1"></i>Forgot your password?
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* Demo Credentials (for development) *@
+            @if (ViewContext.HttpContext.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() == true)
+            {
+                <div class="card mt-3 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-info-circle me-1"></i>Demo Credentials
+                        </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Admin Account:</small>
+                                <code class="small">admin@orchidshop.com</code><br>
+                                <code class="small">Admin123!</code>
+                                <button class="btn btn-sm btn-outline-warning mt-1" 
+                                        onclick="fillDemoCredentials('admin@orchidshop.com', 'Admin123!')">
+                                    Use Admin
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Customer Account:</small>
+                                <code class="small">customer@example.com</code><br>
+                                <code class="small">Customer123!</code>
+                                <button class="btn btn-sm btn-outline-warning mt-1" 
+                                        onclick="fillDemoCredentials('customer@example.com', 'Customer123!')">
+                                    Use Customer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function() {
+            // Focus on email input
+            $('#LoginRequest_Email').focus();
+            
+            // Form submission handler
+            $('#loginForm').on('submit', function(e) {
+                const email = $('#LoginRequest_Email').val();
+                const password = $('#LoginRequest_Password').val();
+                
+                if (!email || !password) {
+                    e.preventDefault();
+                    showAlert('danger', 'Please fill in all required fields');
+                    return false;
+                }
+                
+                // Show loading state
+                showLoading(true);
+            });
+        });
+
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('LoginRequest_Password');
+            const toggleIcon = document.getElementById('passwordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.className = 'bi bi-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.className = 'bi bi-eye';
+            }
+        }
+
+        // Show loading state on login button
+        function showLoading(show) {
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('loginSpinner');
+            
+            if (show) {
+                btn.disabled = true;
+                spinner.classList.remove('d-none');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing In...';
+            } else {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In';
+            }
+        }
+
+        // Fill demo credentials (development only)
+        function fillDemoCredentials(email, password) {
+            document.getElementById('LoginRequest_Email').value = email;
+            document.getElementById('LoginRequest_Password').value = password;
+        }
+
+        // Show forgot password modal/alert
+        function showForgotPassword() {
+            showAlert('info', 'Please contact support at support@orchidshop.com to reset your password.', 5000);
+        }
+
+        // Handle form errors and reset loading state
+        @if (!ViewData.ModelState.IsValid || TempData["ErrorMessage"] != null)
+        {
+            <text>
+            $(document).ready(function() {
+                showLoading(false);
+            });
+            </text>
+        }
+    </script>
+} 
