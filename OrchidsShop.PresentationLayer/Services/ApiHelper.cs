@@ -7,14 +7,20 @@ namespace OrchidsShop.PresentationLayer.Services;
 public class ApiHelper
 {
     private readonly HttpClient _httpClient;
+    private readonly JsonSerializerOptions _jsonOptions;
 
-        public ApiHelper(HttpClient httpClient)
-        {
-            _httpClient = httpClient;
-        }
+    public ApiHelper(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+        _jsonOptions = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+    }
 
-        // GET request
-        public async Task<TResponse?> GetAsync<TResponse>(string url)
+        // GET request - Returns ApiResponse<List<T>> for paginated results
+        public async Task<ApiResponse<List<TData>>?> GetAsync<TData>(string url)
         {
             try
             {
@@ -23,93 +29,103 @@ public class ApiHelper
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorMessage = await response.Content.ReadAsStringAsync();
-                    return JsonSerializer.Deserialize<TResponse>(JsonSerializer.Serialize(new ErrorResponseModel()
+                    return new ApiResponse<List<TData>>
                     {
-                        Status = response.StatusCode.ToString(),
-                        Message = errorMessage
-                    }));
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
                 }
 
                 var responseData = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<TResponse>(responseData,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return JsonSerializer.Deserialize<ApiResponse<List<TData>>>(responseData, _jsonOptions);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Deserialize<TResponse>(JsonSerializer.Serialize(new ErrorResponseModel
+                return new ApiResponse<List<TData>>
                 {
-                    Status = "500", // Internal Server Error
-                    Message = ex.Message
-                }));
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
             }
         }
 
-        // POST request
-        public async Task<TResponse?> PostAsync<TRequest, TResponse>(string url, TRequest data)
+        // GET request with query parameters
+        public async Task<ApiResponse<List<TData>>?> GetWithQueryAsync<TData>(string baseUrl, object queryParams)
+        {
+            var url = BuildUrlWithQuery(baseUrl, queryParams);
+            return await GetAsync<TData>(url);
+        }
+
+        // POST request - Returns ApiOperationResponse for create operations
+        public async Task<ApiOperationResponse?> PostAsync<TRequest>(string url, TRequest data)
         {
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+                var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(url, content);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorMessage = await response.Content.ReadAsStringAsync();
-                    return JsonSerializer.Deserialize<TResponse>(JsonSerializer.Serialize(new ErrorResponseModel
+                    return new ApiOperationResponse
                     {
-                        Status = response.StatusCode.ToString(),
-                        Message = errorMessage
-                    }));
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
                 }
 
                 var responseData = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<TResponse>(responseData,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return JsonSerializer.Deserialize<ApiOperationResponse>(responseData, _jsonOptions);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Deserialize<TResponse>(JsonSerializer.Serialize(new ErrorResponseModel
+                return new ApiOperationResponse
                 {
-                    Status = "500", // Internal Server Error
-                    Message = ex.Message
-                }));
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
             }
         }
 
-        // PUT request
-        public async Task<TResponse?> PutAsync<TRequest, TResponse>(string url, TRequest data)
+        // PUT request - Returns ApiOperationResponse for update operations
+        public async Task<ApiOperationResponse?> PutAsync<TRequest>(string url, TRequest data)
         {
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+                var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PutAsync(url, content);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorMessage = await response.Content.ReadAsStringAsync();
-                    return JsonSerializer.Deserialize<TResponse>(JsonSerializer.Serialize(new ErrorResponseModel
+                    return new ApiOperationResponse
                     {
-                        Status = response.StatusCode.ToString(),
-                        Message = errorMessage
-                    }));
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
                 }
 
                 var responseData = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<TResponse>(responseData,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return JsonSerializer.Deserialize<ApiOperationResponse>(responseData, _jsonOptions);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Deserialize<TResponse>(JsonSerializer.Serialize(new ErrorResponseModel
+                return new ApiOperationResponse
                 {
-                    Status = "500", // Internal Server Error
-                    Message = ex.Message
-                }));
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
             }
         }
 
-        // DELETE request (returns bool)
-        public async Task<bool> DeleteAsync(string url)
+        // DELETE request - Returns ApiOperationResponse for delete operations
+        public async Task<ApiOperationResponse?> DeleteAsync(string url)
         {
             try
             {
@@ -117,19 +133,57 @@ public class ApiHelper
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // Log error message if needed
                     var errorMessage = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"DELETE failed: {errorMessage}");
-                    return false; // Return false if deletion failed
+                    return new ApiOperationResponse
+                    {
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
                 }
 
-                return true; // Return true if deletion was successful
+                var responseData = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ApiOperationResponse>(responseData, _jsonOptions);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception during DELETE: {ex.Message}");
-                return false; // Return false if an exception occurred
+                return new ApiOperationResponse
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
             }
+        }
+
+        // Helper method to build URL with query parameters
+        private string BuildUrlWithQuery(string baseUrl, object queryParams)
+        {
+            if (queryParams == null) return baseUrl;
+
+            var properties = queryParams.GetType().GetProperties();
+            var queryString = new List<string>();
+
+            foreach (var prop in properties)
+            {
+                var value = prop.GetValue(queryParams);
+                if (value != null)
+                {
+                    if (value is IEnumerable<string> list)
+                    {
+                        foreach (var item in list)
+                        {
+                            queryString.Add($"{prop.Name}={Uri.EscapeDataString(item)}");
+                        }
+                    }
+                    else
+                    {
+                        queryString.Add($"{prop.Name}={Uri.EscapeDataString(value.ToString())}");
+                    }
+                }
+            }
+
+            return queryString.Count > 0 ? $"{baseUrl}?{string.Join("&", queryString)}" : baseUrl;
         }
 
         public async Task<byte[]> ConvertToByteArrayAsync(IFormFile file)

@@ -1,4 +1,5 @@
 using AutoMapper;
+using OrchidsShop.BLL.DTOs.Accounts.Requests;
 using OrchidsShop.BLL.DTOs.Accounts.Responses;
 using OrchidsShop.BLL.DTOs.Categories.Requests;
 using OrchidsShop.BLL.DTOs.Categories.Responses;
@@ -33,5 +34,6 @@ public class MapperHelper : Profile
         // Account mappings
         CreateMap<Account, QueryAccountResponse>()
             .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name));
+        CreateMap<CommandAccountRequest, Account>();
     }
 }

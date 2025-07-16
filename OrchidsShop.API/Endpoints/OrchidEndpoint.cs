@@ -35,11 +35,11 @@ public class OrchidEndpoint : ICarterModule
             ;
     
         /// <summary>
-        /// Tạo mới một hoa lan.
+        /// Tạo mới một hoa lan với thông tin đầy đủ.
         /// </summary>
-        /// <param name="request">Thông tin hoa lan cần tạo.</param>
+        /// <param name="request">Thông tin hoa lan cần tạo bao gồm: name, description, url, price, isNatural, categoryId.</param>
         /// <param name="service">Service xử lý nghiệp vụ hoa lan.</param>
-        /// <returns>Kết quả tạo hoa lan.</returns>
+        /// <returns>Kết quả tạo hoa lan (OperationResult&lt;bool&gt;).</returns>
         app.MapPost(
                 Route,
                 async (CommandOrchidRequest request, IOrchidService service) =>
@@ -50,16 +50,17 @@ public class OrchidEndpoint : ICarterModule
                         : Results.Ok(result);
                 })
             .WithDisplayName("Create Orchid")
-            .WithDescription("Creates a new orchid.")
+            .WithDescription("Tạo sản phẩm hoa lan mới với thông tin đầy đủ. Trường bắt buộc: name, price, isNatural, categoryId. " +
+                           "Các trường tùy chọn: description, url. Sử dụng ReflectionHelper để mapping dữ liệu.")
             .WithTags("Orchids")
             ;
 
         /// <summary>
-        /// Cập nhật thông tin hoa lan.
+        /// Cập nhật thông tin hoa lan sử dụng ReflectionHelper.
         /// </summary>
-        /// <param name="request">Thông tin hoa lan cần cập nhật.</param>
+        /// <param name="request">Thông tin hoa lan cần cập nhật, bắt buộc có ID. Các trường khác sẽ được cập nhật nếu có giá trị.</param>
         /// <param name="service">Service xử lý nghiệp vụ hoa lan.</param>
-        /// <returns>Kết quả cập nhật hoa lan.</returns>
+        /// <returns>Kết quả cập nhật (OperationResult&lt;bool&gt;).</returns>
         app.MapPut(
                 Route,
                 async (CommandOrchidRequest request, IOrchidService service) =>
@@ -70,16 +71,17 @@ public class OrchidEndpoint : ICarterModule
                         : Results.Ok(result);
                 })
             .WithDisplayName("Update Orchid")
-            .WithDescription("Updates an existing orchid.")
+            .WithDescription("Cập nhật thông tin hoa lan hiện có. Bắt buộc có ID trong request body. " +
+                           "Chỉ cập nhật các trường có giá trị (không null). Sử dụng ReflectionHelper để mapping linh hoạt.")
             .WithTags("Orchids")
             ;
 
         /// <summary>
-        /// Xóa hoa lan theo ID.
+        /// Xóa hoa lan theo ID với kiểm tra ràng buộc dữ liệu.
         /// </summary>
-        /// <param name="id">ID của hoa lan cần xóa.</param>
+        /// <param name="id">ID của hoa lan cần xóa (Guid format).</param>
         /// <param name="service">Service xử lý nghiệp vụ hoa lan.</param>
-        /// <returns>Kết quả xóa hoa lan.</returns>
+        /// <returns>Kết quả xóa (OperationResult&lt;bool&gt;).</returns>
         app.MapDelete(
                 $"{Route}/{{id:guid}}",
                 async (Guid id, IOrchidService service) =>
@@ -90,7 +92,8 @@ public class OrchidEndpoint : ICarterModule
                         : Results.Ok(result);
                 })
             .WithDisplayName("Delete Orchid")
-            .WithDescription("Deletes an orchid by ID.")
+            .WithDescription("Xóa hoa lan theo ID. Kiểm tra ràng buộc dữ liệu trước khi xóa (ví dụ: đơn hàng liên quan). " +
+                           "Trả về lỗi nếu không thể xóa do vi phạm tính toàn vẹn dữ liệu.")
             .WithTags("Orchids")
             ;
     }

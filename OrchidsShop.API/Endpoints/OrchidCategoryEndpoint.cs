@@ -59,7 +59,8 @@ public class OrchidCategoryEndpoint : ICarterModule
                         });
                 })
             .WithDisplayName("Create Orchid Categories")
-            .WithDescription("Creates multiple orchid categories from a list. Validates for existing names, filters out null/empty objects, and uses bulk insertion for efficiency.")
+            .WithDescription("Tạo nhiều danh mục hoa lan từ danh sách. Tự động kiểm tra trùng lặp, lọc bỏ dữ liệu không hợp lệ và sử dụng bulk insertion để tối ưu hiệu suất. " +
+                           "Chỉ tạo các danh mục có tên hợp lệ (2-255 ký tự, không trùng với danh mục hiện có).")
             .WithName("Create Orchid Categories")
             .WithTags(Tags)
             ;
@@ -83,7 +84,8 @@ public class OrchidCategoryEndpoint : ICarterModule
                         });
                 })
             .WithDisplayName("Update Orchid Category")
-            .WithDescription("Updates an existing orchid category with comprehensive validation using ReflectionHelper for flexible property updates.")
+            .WithDescription("Cập nhật danh mục hoa lan hiện có với validation toàn diện. Sử dụng ReflectionHelper để cập nhật linh hoạt các thuộc tính. " +
+                           "Kiểm tra tính duy nhất của tên danh mục và validation dữ liệu đầu vào.")
             .WithTags(Tags)
             ;
 
@@ -106,7 +108,8 @@ public class OrchidCategoryEndpoint : ICarterModule
                         });
                 })
             .WithDisplayName("Partial Update Orchid Category")
-            .WithDescription("Partially updates an orchid category using ReflectionHelper. Only updates properties that are provided (not null/empty).")
+            .WithDescription("Cập nhật một phần danh mục hoa lan sử dụng ReflectionHelper. Chỉ cập nhật các thuộc tính được cung cấp (không null/empty). " +
+                           "Tối ưu cho việc cập nhật từng trường cụ thể mà không ảnh hưởng đến các trường khác.")
             .WithTags(Tags)
             ;
 
@@ -149,7 +152,8 @@ public class OrchidCategoryEndpoint : ICarterModule
                         });
                 })
             .WithDisplayName("Delete Orchid Category")
-            .WithDescription("Deletes an orchid category after checking for associated orchids to maintain referential integrity.")
+            .WithDescription("Xóa danh mục hoa lan sau khi kiểm tra các hoa lan liên quan để duy trì tính toàn vẹn dữ liệu. " +
+                           "Trả về lỗi nếu có hoa lan thuộc danh mục này để tránh mất dữ liệu quan trọng.")
             .WithTags(Tags)
             ;
     }

@@ -20,9 +20,20 @@ namespace OrchidsShop.API.Controllers
         
         [HttpGet]
         [SwaggerOperation(
-            Summary = "Lấy danh sách đơn hàng",
-            Description = "Lấy danh sách đơn hàng với phân trang, lọc và sắp xếp. " +
-                          "Dùng chung cho lấy chi tiết đơn hàng theo ID, lọc theo ID, lọc theo trạng thái, lọc theo ngày tạo, lọc theo ngày tạo.",
+            Summary = "Truy vấn danh sách đơn hàng",
+            Description = "Truy xuất danh sách đơn hàng với khả năng lọc, tìm kiếm, phân trang và sắp xếp nâng cao. " +
+                          "Hỗ trợ lọc theo trạng thái, khách hàng, ngày tạo và các tiêu chí khác." +
+                          "\n\n**Tham số truy vấn:**" +
+                          "\n- search: string (tìm kiếm trong thông tin đơn hàng)" +
+                          "\n- status: string (lọc theo trạng thái: Pending, Processing, Confirmed, Shipped, Delivered, Cancelled)" +
+                          "\n- accountId: Guid (lọc theo khách hàng)" +
+                          "\n- fromDate: DateTime (từ ngày)" +
+                          "\n- toDate: DateTime (đến ngày)" +
+                          "\n- pageNumber: int (số trang)" +
+                          "\n- pageSize: int (kích thước trang)" +
+                          "\n- sortColumn: string (cột sắp xếp: CreatedDate, Total, Status)" +
+                          "\n- sortDir: string (Asc/Desc)" +
+                          "\n\n**Sử dụng:** Quản lý đơn hàng, lịch sử mua hàng của khách",
             OperationId = "QueryOrders",
             Tags = new[] { Tags }
         )]
@@ -34,8 +45,16 @@ namespace OrchidsShop.API.Controllers
 
         [HttpPost]
         [SwaggerOperation(
-            Summary = "Tạo đơn hàng",
-            Description = "Tạo đơn hàng mới.",
+            Summary = "Tạo đơn hàng mới",
+            Description = "Tạo đơn hàng mới với danh sách sản phẩm. Tự động tính toán tổng tiền và tạo các chi tiết đơn hàng." +
+                          "\n\n**Trường bắt buộc:**" +
+                          "\n- accountId: Guid (ID khách hàng đặt hàng)" +
+                          "\n- orderDetails: List<CommandOrderDetailRequest> (danh sách sản phẩm)" +
+                          "\n\n**Cấu trúc OrderDetail:**" +
+                          "\n- orchidId: Guid (ID sản phẩm)" +
+                          "\n- quantity: int (số lượng, > 0)" +
+                          "\n\n**Trả về:** Thông tin đơn hàng đã tạo với trạng thái 'Pending'" +
+                          "\n\n**Lưu ý:** Hệ thống sẽ kiểm tra tồn kho và tính toán tổng tiền tự động",
             OperationId = "CreateOrder",
             Tags = new[] { Tags }
         )]
@@ -48,9 +67,17 @@ namespace OrchidsShop.API.Controllers
         [HttpPut]
         [SwaggerOperation(
             Summary = "Cập nhật đơn hàng",
-            Description = "Cập nhật đơn hàng." +
-            "Cập nhật trạng thái đơn hàng." + 
-            "Cập nhật chi tiết đơn hàng.",
+            Description = "Cập nhật thông tin đơn hàng bao gồm trạng thái và chi tiết đơn hàng. Sử dụng ReflectionHelper để cập nhật linh hoạt." +
+                          "\n\n**Trường bắt buộc:**" +
+                          "\n- id: Guid (ID đơn hàng cần cập nhật)" +
+                          "\n\n**Trường có thể cập nhật:**" +
+                          "\n- status: string (trạng thái mới: Processing, Confirmed, Shipped, Delivered, Cancelled)" +
+                          "\n- orderDetails: List<CommandOrderDetailRequest> (cập nhật chi tiết)" +
+                          "\n\n**Cấu trúc OrderDetail cho cập nhật:**" +
+                          "\n- id: Guid (để cập nhật chi tiết hiện có)" +
+                          "\n- orchidId: Guid (để thêm chi tiết mới)" +
+                          "\n- quantity: int (số lượng mới)" +
+                          "\n\n**Sử dụng:** Quản lý trạng thái đơn hàng, thay đổi số lượng sản phẩm",
             OperationId = "UpdateOrder",
             Tags = new[] { Tags }
         )]

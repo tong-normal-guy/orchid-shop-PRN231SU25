@@ -1,58 +1,118 @@
-### Test Orchid API endpoints
+### =========================================================================
+### ORCHID SHOP API TEST COLLECTION
+### =========================================================================
+### This file contains comprehensive API tests for the OrchidShop application
+### Including Controllers (GET operations) and Endpoints (POST/PUT/DELETE operations)
+### 
+### Base URL Configuration:
+### - Development: http://localhost:5077 (from launchSettings.json)
+### - Alternative: http://localhost:5000
+### 
+### API Architecture:
+### - Controllers: Handle GET/Query operations with pagination and filtering
+### - Endpoints: Handle POST/PUT/DELETE operations using Carter framework
+### =========================================================================
 
-@OrchidsShop.API_HostAddress = http://localhost:5000
+@OrchidsShop.API_HostAddress = http://localhost:5077
 
-### Get all orchids
-GET {{OrchidsShop.API_HostAddress}}/api/v1/orchids
+### =========================================================================
+### 🌺 ACCOUNTS API - Authentication & User Management
+### =========================================================================
 
-### Create orchid
-POST {{OrchidsShop.API_HostAddress}}/api/v1/orchids
+### 1. LOGIN - User Authentication
+### POST /api/accounts/login
+### Fields: email (string, required), password (string, required)
+### Other fields in request will be ignored
+POST {{OrchidsShop.API_HostAddress}}/api/accounts/login
 Content-Type: application/json
 
 {
-  "name": "Orchid 1",
-  "description": "This is a beautiful orchid",
-  "url": "https://example.com/orchid1.jpg",
-  "price": 25.50,
-  "isNatural": true
+  "email": "admin@orchidshop.com",
+  "password": "Admin123!",
+  "name": "This will be ignored",
+  "role": "This will be ignored"
 }
 
-### ===========================================
-### ORCHID CATEGORIES - ReflectionHelper Enhanced CRUD
-### ===========================================
-
-### USER'S REQUEST - CREATE CATEGORIES
-POST http://localhost:5077/api/orchid-categories
+### 2. REGISTER - New User Registration
+### POST /api/accounts/register
+### Fields: email, name, password, confirmPassword, role (optional)
+POST {{OrchidsShop.API_HostAddress}}/api/accounts/register
 Content-Type: application/json
 
-[
-    {
-        "name": "Phalaenopsis"
-    },
-    {
-        "name": "Cattleya"
-    },
-    {
-        "name": "Dendrobium"
-    },
-    {
-        "name": "Cymbidium"
-    }
-]
+{
+  "email": "customer@example.com",
+  "name": "John Customer",
+  "password": "Customer123!",
+  "confirmPassword": "Customer123!",
+  "role": "Customer"
+}
 
-### 1. GET all orchid categories (default pagination)
+### 3. CREATE ACCOUNT - Admin Only
+### POST /api/accounts
+### Fields: email, name, password, confirmPassword, role
+POST {{OrchidsShop.API_HostAddress}}/api/accounts
+Content-Type: application/json
+
+{
+  "email": "staff@orchidshop.com",
+  "name": "Jane Staff",
+  "password": "Staff123!",
+  "confirmPassword": "Staff123!",
+  "role": "Staff"
+}
+
+### 4. GET ALL ROLES
+### GET /api/accounts/roles
+### Returns: List of available user roles
+GET {{OrchidsShop.API_HostAddress}}/api/accounts/roles
+
+### 5. GET ACCOUNT BY ID
+### GET /api/accounts/{id}
+### Returns: Single account wrapped in List (following OrchidShop patterns)
+GET {{OrchidsShop.API_HostAddress}}/api/accounts/550e8400-e29b-41d4-a716-446655440000
+
+### 6. UPDATE ACCOUNT
+### PUT /api/accounts/{id}
+### Fields: id (from URL), email, name, password, confirmPassword, role
+PUT {{OrchidsShop.API_HostAddress}}/api/accounts/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "email": "updated.email@orchidshop.com",
+  "name": "Updated Name",
+  "password": "NewPassword123!",
+  "confirmPassword": "NewPassword123!",
+  "role": "Manager"
+}
+
+### =========================================================================
+### 🏷️ ORCHID CATEGORIES API - Category Management
+### =========================================================================
+
+### 7. GET ALL CATEGORIES - Default Pagination
+### GET /api/orchid-categories
+### Query Parameters: pageNumber, pageSize, search, ids[], sortColumn, sortDir
+### Returns: Paginated list with metadata
 GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories
 
-### 2. GET categories with pagination and search
-GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?pageNumber=1&pageSize=5&search=Phal
+### 8. GET CATEGORIES - Advanced Query Examples
+### Search by name
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?search=Phal&pageNumber=1&pageSize=10
 
-### 3. GET categories by specific IDs (simulates get by ID)
-GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?ids=550e8400-e29b-41d4-a716-446655440000
+### Filter by specific IDs (comma-separated)
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?ids=550e8400-e29b-41d4-a716-446655440000,550e8400-e29b-41d4-a716-446655440001
 
-### 4. GET categories with sorting
+### Sort by name ascending
 GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?sortColumn=Name&sortDir=Asc
 
-### 5. CREATE multiple orchid categories (main create function)
+### Combined query - search + pagination + sorting
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?search=orchid&pageNumber=2&pageSize=5&sortColumn=Name&sortDir=Desc
+
+### 9. CREATE CATEGORIES - Bulk Creation with Validation
+### POST /api/orchid-categories
+### Accepts: List<CommandCategoryRequest>
+### Fields per item: name (string, required, 2-255 chars)
+### Features: Validates duplicates, filters null/empty, bulk insertion
 POST {{OrchidsShop.API_HostAddress}}/api/orchid-categories
 Content-Type: application/json
 
@@ -67,83 +127,18 @@ Content-Type: application/json
     "name": "Dendrobium"
   },
   {
-    "name": null
+    "name": "Cymbidium"
   },
-  {
-    "name": ""
-  },
-  {
-    "name": "Phalaenopsis"
-  }
-]
-
-### 6. CREATE categories with some duplicates (should skip existing ones)
-POST {{OrchidsShop.API_HostAddress}}/api/orchid-categories
-Content-Type: application/json
-
-[
   {
     "name": "Vanda"
   },
   {
     "name": "Oncidium"
-  },
-  {
-    "name": "Phalaenopsis"
   }
 ]
 
-### ===========================================
-### UPDATE METHODS - ReflectionHelper Enhanced
-### ===========================================
-
-### 7. FULL UPDATE category (ReflectionHelper with comprehensive validation)
-PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
-
-{
-  "name": "Phalaenopsis Updated"
-}
-
-### 8. PARTIAL UPDATE category (ReflectionHelper - only updates provided fields)
-PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
-
-{
-  "name": "Phalaenopsis Partial Update"
-}
-
-### 9. PARTIAL UPDATE with no changes (should detect no changes needed)
-PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
-
-{
-  "name": "Phalaenopsis Partial Update"
-}
-
-### 10. BULK UPDATE multiple categories (ReflectionHelper bulk operations)
-PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/bulk
-Content-Type: application/json
-
-{
-  "categoryIds": [
-    "550e8400-e29b-41d4-a716-446655440000",
-    "550e8400-e29b-41d4-a716-446655440001",
-    "550e8400-e29b-41d4-a716-446655440002"
-  ],
-  "updateData": {
-    "name": "Bulk Updated Category"
-  }
-}
-
-### 11. DELETE category (with referential integrity checks)
-DELETE {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
-
-### ===========================================
-### ERROR HANDLING & VALIDATION EXAMPLES
-### ===========================================
-
-### 12. Create categories with all invalid values
+### 10. CREATE CATEGORIES - Error Handling Examples
+### Test with invalid data
 POST {{OrchidsShop.API_HostAddress}}/api/orchid-categories
 Content-Type: application/json
 
@@ -155,52 +150,272 @@ Content-Type: application/json
     "name": ""
   },
   {
-    "name": "   "
+    "name": "A"
+  },
+  {
+    "name": "This name is way too long and exceeds the maximum allowed length of 255 characters which should trigger a validation error in the system because we want to maintain data integrity and ensure that category names are within reasonable limits for database storage and user interface display purposes"
   }
 ]
 
-### 13. Update with invalid name (too short)
+### 11. UPDATE CATEGORY - Full Update with ReflectionHelper
+### PUT /api/orchid-categories/{id}
+### Uses ReflectionHelper for flexible property updates
 PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
 Content-Type: application/json
 
 {
-  "name": "A"
+  "name": "Phalaenopsis - Updated"
 }
 
-### 14. Partial update with invalid name (too long - over 255 chars)
+### 12. PARTIAL UPDATE CATEGORY - ReflectionHelper Partial Update
+### PATCH /api/orchid-categories/{id}
+### Only updates provided fields (ignores null/empty)
 PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
 Content-Type: application/json
 
 {
-  "name": "This is a very long category name that exceeds the maximum allowed length of 255 characters and should trigger a validation error because it is way too long for a category name and will cause issues in the database and user interface display"
+  "name": "Phalaenopsis - Partially Updated"
 }
 
-### 15. Bulk update with no category IDs
-PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/bulk
+### 13. DELETE CATEGORY - With Referential Integrity
+### DELETE /api/orchid-categories/{id}
+### Checks for associated orchids before deletion
+DELETE {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
+
+### =========================================================================
+### 🌸 ORCHIDS API - Product Management
+### =========================================================================
+
+### 14. GET ALL ORCHIDS - Default Query
+### GET /api/orchids
+### Controller handles all query operations with advanced filtering
+GET {{OrchidsShop.API_HostAddress}}/api/orchids
+
+### 15. GET ORCHIDS - Advanced Query Examples
+### Search by name or description
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?search=beautiful&pageNumber=1&pageSize=10
+
+### Filter by natural/artificial
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?isNarutal=true
+
+### Filter by categories (comma-separated category names)
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?categories=Phalaenopsis,Cattleya
+
+### Filter by price range
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?minPrice=20.00&maxPrice=100.00
+
+### Filter by specific orchid IDs (comma-separated)
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?ids=550e8400-e29b-41d4-a716-446655440000,550e8400-e29b-41d4-a716-446655440001
+
+### Combined advanced query
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?search=orchid&isNarutal=true&categories=Phalaenopsis&minPrice=25.00&maxPrice=75.00&pageNumber=1&pageSize=20&sortColumn=Price&sortDir=Asc
+
+### 16. CREATE ORCHID
+### POST /api/orchids
+### Fields: name, description, url, price, isNatural, categoryId
+POST {{OrchidsShop.API_HostAddress}}/api/orchids
 Content-Type: application/json
 
 {
-  "categoryIds": [],
-  "updateData": {
-    "name": "Should Fail"
-  }
+  "name": "Beautiful Phalaenopsis",
+  "description": "A stunning white Phalaenopsis orchid with delicate petals and a sweet fragrance. Perfect for indoor decoration and gifts.",
+  "url": "https://example.com/images/phalaenopsis-white.jpg",
+  "price": 45.99,
+  "isNatural": true,
+  "categoryId": "550e8400-e29b-41d4-a716-446655440000"
 }
 
-### 16. Bulk update with non-existent category IDs
-PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/bulk
+### 17. CREATE ORCHID - Multiple Examples for Frontend Testing
+POST {{OrchidsShop.API_HostAddress}}/api/orchids
 Content-Type: application/json
 
 {
-  "categoryIds": [
-    "00000000-0000-0000-0000-000000000000",
-    "11111111-1111-1111-1111-111111111111"
-  ],
-  "updateData": {
-    "name": "Non-existent Categories"
-  }
+  "name": "Purple Cattleya Orchid",
+  "description": "Vibrant purple Cattleya with large, showy blooms. Known for its intense fragrance and long-lasting flowers.",
+  "url": "https://example.com/images/cattleya-purple.jpg",
+  "price": 78.50,
+  "isNatural": true,
+  "categoryId": "550e8400-e29b-41d4-a716-446655440001"
 }
 
-### 17. Update non-existent category
+### 18. CREATE ARTIFICIAL ORCHID
+POST {{OrchidsShop.API_HostAddress}}/api/orchids
+Content-Type: application/json
+
+{
+  "name": "Silk Dendrobium Arrangement",
+  "description": "High-quality artificial Dendrobium orchid arrangement. Maintenance-free and perfect for office spaces.",
+  "url": "https://example.com/images/silk-dendrobium.jpg",
+  "price": 32.99,
+  "isNatural": false,
+  "categoryId": "550e8400-e29b-41d4-a716-446655440002"
+}
+
+### 19. UPDATE ORCHID - Full Update
+### PUT /api/orchids
+### Updates existing orchid (requires ID in request body)
+PUT {{OrchidsShop.API_HostAddress}}/api/orchids
+Content-Type: application/json
+
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Updated Orchid Name",
+  "description": "Updated description with new details about this beautiful orchid.",
+  "url": "https://example.com/images/updated-orchid.jpg",
+  "price": 55.99,
+  "isNatural": true,
+  "categoryId": "550e8400-e29b-41d4-a716-446655440001"
+}
+
+### 20. DELETE ORCHID
+### DELETE /api/orchids/{id}
+DELETE {{OrchidsShop.API_HostAddress}}/api/orchids/550e8400-e29b-41d4-a716-446655440000
+
+### =========================================================================
+### 📦 ORDERS API - Order Management
+### =========================================================================
+
+### 21. GET ALL ORDERS - Query with Filtering
+### GET /api/orders
+### Query Parameters: pageNumber, pageSize, search, sorting, filtering by status, date, etc.
+GET {{OrchidsShop.API_HostAddress}}/api/orders
+
+### 22. GET ORDERS - Advanced Query Examples
+### Filter by status, date range, customer, etc.
+GET {{OrchidsShop.API_HostAddress}}/api/orders?pageNumber=1&pageSize=10&sortColumn=CreatedDate&sortDir=Desc
+
+### 23. CREATE ORDER - New Order with Order Details
+### POST /api/orders
+### Fields: accountId (required for create), orderDetails (list of items)
+POST {{OrchidsShop.API_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "orderDetails": [
+    {
+      "orchidId": "550e8400-e29b-41d4-a716-446655440001",
+      "quantity": 2
+    },
+    {
+      "orchidId": "550e8400-e29b-41d4-a716-446655440002",
+      "quantity": 1
+    },
+    {
+      "orchidId": "550e8400-e29b-41d4-a716-446655440003",
+      "quantity": 3
+    }
+  ]
+}
+
+### 24. CREATE ORDER - Single Item Order
+POST {{OrchidsShop.API_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "orderDetails": [
+    {
+      "orchidId": "550e8400-e29b-41d4-a716-446655440001",
+      "quantity": 1
+    }
+  ]
+}
+
+### 25. UPDATE ORDER - Status Update
+### PUT /api/orders
+### Fields: id (required for update), status, orderDetails (optional)
+PUT {{OrchidsShop.API_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Processing",
+  "orderDetails": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "quantity": 3
+    }
+  ]
+}
+
+### 26. UPDATE ORDER - Add/Modify Order Details
+PUT {{OrchidsShop.API_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Confirmed",
+  "orderDetails": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "quantity": 2
+    },
+    {
+      "orchidId": "550e8400-e29b-41d4-a716-446655440005",
+      "quantity": 1
+    }
+  ]
+}
+
+### 27. DELETE ORDER
+### DELETE /api/orders
+DELETE {{OrchidsShop.API_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000"
+}
+
+### =========================================================================
+### 🧪 ERROR HANDLING & VALIDATION EXAMPLES
+### =========================================================================
+
+### 28. Invalid Login Credentials
+POST {{OrchidsShop.API_HostAddress}}/api/accounts/login
+Content-Type: application/json
+
+{
+  "email": "invalid@email.com",
+  "password": "wrongpassword"
+}
+
+### 29. Invalid Registration - Password Mismatch
+POST {{OrchidsShop.API_HostAddress}}/api/accounts/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "name": "Test User",
+  "password": "Password123!",
+  "confirmPassword": "DifferentPassword123!",
+  "role": "Customer"
+}
+
+### 30. Invalid Orchid - Missing Required Fields
+POST {{OrchidsShop.API_HostAddress}}/api/orchids
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": null,
+  "price": -10.00,
+  "isNatural": null
+}
+
+### 31. Invalid Order - Empty Order Details
+POST {{OrchidsShop.API_HostAddress}}/api/orders
+Content-Type: application/json
+
+{
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "orderDetails": []
+}
+
+### 32. Non-existent Resource Access
+GET {{OrchidsShop.API_HostAddress}}/api/orchids/00000000-0000-0000-0000-000000000000
+
+### 33. Non-existent Category Update
 PUT {{OrchidsShop.API_HostAddress}}/api/orchid-categories/00000000-0000-0000-0000-000000000000
 Content-Type: application/json
 
@@ -208,12 +423,123 @@ Content-Type: application/json
   "name": "Non-existent Category"
 }
 
-### 18. Partial update with empty request body
-PATCH {{OrchidsShop.API_HostAddress}}/api/orchid-categories/550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
+### =========================================================================
+### 📊 FRONTEND INTEGRATION EXAMPLES
+### =========================================================================
 
-{
-}
+### 34. Category Dropdown Data
+### For populating category selection in frontend forms
+GET {{OrchidsShop.API_HostAddress}}/api/orchid-categories?pageSize=100&sortColumn=Name&sortDir=Asc
 
-### 19. Delete non-existent category
-DELETE {{OrchidsShop.API_HostAddress}}/api/orchid-categories/00000000-0000-0000-0000-000000000000
+### 35. Product Catalog with Pagination
+### For main product listing page
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?pageNumber=1&pageSize=12&sortColumn=Name&sortDir=Asc
+
+### 36. Search Products
+### For search functionality
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?search=beautiful&pageNumber=1&pageSize=20
+
+### 37. Filter by Category
+### For category-based filtering
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?categories=Phalaenopsis&pageNumber=1&pageSize=12
+
+### 38. Price Range Filter
+### For price filtering slider/input
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?minPrice=20&maxPrice=100&pageNumber=1&pageSize=12
+
+### 39. Product Details
+### For single product view (returns list with one item)
+GET {{OrchidsShop.API_HostAddress}}/api/orchids?ids=550e8400-e29b-41d4-a716-446655440000
+
+### 40. User Order History
+### For customer order management
+GET {{OrchidsShop.API_HostAddress}}/api/orders?pageNumber=1&pageSize=10&sortColumn=CreatedDate&sortDir=Desc
+
+### =========================================================================
+### 🔧 RESPONSE FORMAT EXAMPLES
+### =========================================================================
+
+### Expected Response Formats:
+
+### Controllers (GET operations) return:
+### {
+###   "message": "Success message",
+###   "data": [...], // Always an array, even for single items
+###   "pagination": {
+###     "pageNumber": 1,
+###     "pageSize": 10,
+###     "totalRecords": 50,
+###     "totalPages": 5
+###   }
+### }
+
+### Endpoints (POST/PUT/DELETE) return:
+### Success:
+### {
+###   "message": "Operation completed successfully",
+###   "success": true
+### }
+### 
+### Error:
+### {
+###   "message": "Error description",
+###   "errors": ["Detailed error 1", "Detailed error 2"],
+###   "success": false
+### }
+
+### =========================================================================
+### 📝 FIELD SPECIFICATIONS FOR FRONTEND DEVELOPERS
+### =========================================================================
+
+### CommandAccountRequest:
+### - id: Guid? (optional, used for updates)
+### - email: string? (required for auth operations)
+### - name: string? (display name)
+### - password: string? (required for auth operations)
+### - confirmPassword: string? (required for registration)
+### - role: string? (user role assignment)
+
+### CommandCategoryRequest:
+### - name: string? (required, 2-255 characters)
+
+### CommandOrchidRequest:
+### - id: Guid? (optional, used for updates)
+### - name: string? (product name)
+### - description: string? (detailed description)
+### - url: string? (image URL)
+### - price: decimal? (product price)
+### - isNatural: bool? (true for real orchids, false for artificial)
+### - categoryId: Guid? (reference to category)
+
+### CommandOrderRequest:
+### - id: Guid? (optional, used for updates/deletes)
+### - accountId: Guid? (required for creation)
+### - orderDetails: List<CommandOrderDetailRequest>? (order items)
+### - status: string? (order status for updates)
+
+### CommandOrderDetailRequest:
+### - id: Guid? (optional, used for updates/deletes)
+### - orchidId: Guid? (required for creation)
+### - quantity: int? (item quantity)
+
+### QueryOrchidRequest (Query Parameters):
+### - search: string? (search in name/description)
+### - isNarutal: bool? (filter by natural/artificial)
+### - categories: string? (comma-separated category names)
+### - minPrice: decimal? (minimum price filter)
+### - maxPrice: decimal? (maximum price filter)
+### - ids: string? (comma-separated orchid IDs)
+### - pageNumber: int (default: 1)
+### - pageSize: int (default: 10)
+### - sortColumn: string? (column to sort by)
+### - sortDir: string? (Asc/Desc)
+
+### QueryCategoryRequest (Query Parameters):
+### - search: string? (search in category name)
+### - ids: List<string>? (specific category IDs)
+### - pageNumber: int (default: 1)
+### - pageSize: int (default: 10)
+### - sortColumn: string? (column to sort by)
+### - sortDir: string? (Asc/Desc)
+
+### =========================================================================
