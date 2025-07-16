@@ -20,10 +20,22 @@ public class OrchidCategoriesController : Controller
     
     [HttpGet]
     [SwaggerOperation(
-        Summary = "Lấy danh sách các danh mục hoa lan",
-        Description = "Truy xuất danh sách các danh mục hoa lan dựa trên các tham số truy vấn được cung cấp. " +
-                    "Hỗ trợ phân trang, lọc và sắp xếp. " +
-                    "Dùng chung cho lấy chi tiết danh mục theo ID, theo tên, tìm kiếm, lọc theo ID và tất cả các thao tác truy vấn khác.",
+        Summary = "Truy vấn danh sách danh mục hoa lan",
+        Description = "Truy xuất danh sách các danh mục hoa lan với khả năng lọc, tìm kiếm, phân trang và sắp xếp. " +
+                    "Endpoint thống nhất cho tất cả các thao tác truy vấn danh mục." +
+                    "\n\n**Tham số truy vấn:**" +
+                    "\n- search: string (tìm kiếm trong tên danh mục)" +
+                    "\n- ids: List<string> (danh sách ID danh mục cụ thể)" +
+                    "\n- pageNumber: int (số trang, mặc định 1)" +
+                    "\n- pageSize: int (kích thước trang, mặc định 10)" +
+                    "\n- sortColumn: string (cột sắp xếp, ví dụ: Name)" +
+                    "\n- sortDir: string (hướng sắp xếp: Asc/Desc)" +
+                    "\n\n**Ví dụ sử dụng:**" +
+                    "\n- Tìm kiếm: ?search=Phal" +
+                    "\n- Lọc theo ID: ?ids=guid1,guid2" +
+                    "\n- Sắp xếp: ?sortColumn=Name&sortDir=Asc" +
+                    "\n- Phân trang: ?pageNumber=2&pageSize=5" +
+                    "\n\n**Trả về:** Dữ liệu với metadata phân trang",
         OperationId = "GetOrchidCategories",
         Tags = new[] { "Orchid Categories" }
     )]
