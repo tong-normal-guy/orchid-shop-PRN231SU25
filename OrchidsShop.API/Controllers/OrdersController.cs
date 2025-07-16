@@ -1,5 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OrchidsShop.BLL.Commons.Results;
 using OrchidsShop.BLL.DTOs.Orders.Requests;
 using OrchidsShop.BLL.Services;
 using Swashbuckle.AspNetCore.Annotations;
@@ -8,6 +11,7 @@ namespace OrchidsShop.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OrdersController : ControllerBase
     {
         private const string Tags = "Orders";
@@ -39,8 +43,30 @@ namespace OrchidsShop.API.Controllers
         )]
         public async Task<IActionResult> QueryOrders([FromQuery] QueryOrderRequest request)
         {
+            // Get user ID from JWT token
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized("User ID not found in token");
+            }
+            
+            if (!Guid.TryParse(userId.Value, out var userGuid))
+            {
+                return BadRequest("Invalid user ID format in token");
+            }
+            
+            // Set account ID from token
+            request.AccountId = userGuid;
+            
+            // Call service and return result
             var result = await _orderService.QueryOrdersAsync(request);
-            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+            
+            if (result.IsError)
+            {
+                return BadRequest(result);
+            }
+            
+            return Ok(result);
         }
 
         [HttpPost]
@@ -53,7 +79,8 @@ namespace OrchidsShop.API.Controllers
                           "\n\n**Cấu trúc OrderDetail:**" +
                           "\n- orchidId: Guid (ID sản phẩm)" +
                           "\n- quantity: int (số lượng, > 0)" +
-                          "\n\n**Trả về:** Thông tin đơn hàng đã tạo với trạng thái 'Pending'" +
+                          "\n- price: decimal (giá sản phẩm)" +
+                          "\n\n**Trả về:** Thông tin đơn hàng đã tạo với trạng thái 'Paid'" +
                           "\n\n**Lưu ý:** Hệ thống sẽ kiểm tra tồn kho và tính toán tổng tiền tự động",
             OperationId = "CreateOrder",
             Tags = new[] { Tags }
@@ -61,7 +88,7 @@ namespace OrchidsShop.API.Controllers
         public async Task<IActionResult> CreateOrder([FromBody] CommandOrderRequest request)
         {
             var result = await _orderService.CreateOrderAsync(request);
-            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+            return result.IsError ? BadRequest(result) : Ok(result);
         }
 
         [HttpPut]
@@ -84,7 +111,7 @@ namespace OrchidsShop.API.Controllers
         public async Task<IActionResult> UpdateOrder([FromBody] CommandOrderRequest request)
         {
             var result = await _orderService.UpdateOrderAsync(request);
-            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+            return result.IsError ? BadRequest(result) : Ok(result);
         }
     }
 }

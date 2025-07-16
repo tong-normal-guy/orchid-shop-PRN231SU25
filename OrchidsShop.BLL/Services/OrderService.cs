@@ -1,5 +1,6 @@
 using AutoMapper;
 using OrchidsShop.BLL.Commons.Results;
+using OrchidsShop.BLL.Commons.Paginations;
 using OrchidsShop.BLL.DTOs.Orders.Requests;
 using OrchidsShop.BLL.DTOs.Orders.Responses;
 using OrchidsShop.DAL.Contexts;
@@ -24,7 +25,7 @@ public class OrderService : IOrderService
     /// Queries orders based on the provided request parameters.
     /// </summary>
     /// <param name="request">Query parameters for filtering, pagination, and sorting.</param>
-    /// <returns>Operation result containing list of order DTOs.</returns>
+    /// <returns>Operation result containing list of order DTOs with pagination metadata.</returns>
     public async Task<OperationResult<List<QueryOrderResponse>>> QueryOrdersAsync(QueryOrderRequest request)
     {
         try
@@ -39,30 +40,36 @@ public class OrderService : IOrderService
                 filter: request.GetExpressions(),
                 orderBy: request.GetOrder(),
                 includeProperties: includeProperties,
-                pageIndex: request.PageNumber,
+                pageIndex: request.PageNumber - 1, // Convert to 0-based index
                 pageSize: request.PageSize
             );
             
             // Map to response DTOs
             var orderDtos = _mapper.Map<List<QueryOrderResponse>>(orders);
             
-            // Create paginated result
-            var result = new OperationResult<List<QueryOrderResponse>>
-            {
-                IsError = false,
-                Payload = orderDtos
-            };
+            // Create pagination metadata
+            var pagination = new Pagination(
+                pageIndex: request.PageNumber - 1, // 0-based index
+                pageSize: request.PageSize,
+                count: totalCount
+            );
             
+            // Create success result and set metadata
+            var result = OperationResult<List<QueryOrderResponse>>.Success(
+                payload: orderDtos,
+                statusCode: StatusCode.Ok,
+                message: "Orders retrieved successfully"
+            );
+            
+            result.MetaData = pagination;
             return result;
         }
         catch (Exception ex)
         {
-            return new OperationResult<List<QueryOrderResponse>>
-            {
-                IsError = true,
-                Message = $"Error querying orders: {ex.Message}",
-                Payload = new List<QueryOrderResponse>()
-            };
+            return OperationResult<List<QueryOrderResponse>>.Failure(
+                statusCode: StatusCode.ServerError,
+                messages: new List<string> { $"Error querying orders: {ex.Message}" }
+            );
         }
     }
 
@@ -77,15 +84,16 @@ public class OrderService : IOrderService
         {
             var orderRepository = _unitOfWork.Repository<Order>();
             var orderDetailRepository = _unitOfWork.Repository<OrderDetail>();
-            
+
             // Create new order entity
+            var orderId = Guid.NewGuid();
             var orderEntity = new Order
             {
-                Id = Guid.NewGuid(),
+                Id = orderId,
                 AccountId = request.AccountId!.Value,
                 OrderDate = DateOnly.FromDateTime(DateTime.Now),
-                Status = EnumOrderStatus.Pending.ToString(),
-                TotalAmound = 0 // Will be calculated from order details
+                Status = request.Status ?? EnumOrderStatus.Pending.ToString(),
+                TotalAmount = 0 // Will be calculated from order details
             };
             
             // Calculate total amount and create order details
@@ -96,9 +104,10 @@ public class OrderService : IOrderService
             {
                 foreach (var detailRequest in request.OrderDetails)
                 {
+                    var detailId = Guid.NewGuid();
                     var orderDetail = new OrderDetail
                     {
-                        Id = Guid.NewGuid(),
+                        Id = detailId,
                         OrderId = orderEntity.Id,
                         OrchidId = detailRequest.OrchidId!.Value,
                         Quantity = detailRequest.Quantity!.Value,
@@ -110,34 +119,41 @@ public class OrderService : IOrderService
                 }
             }
             
-            orderEntity.TotalAmound = totalAmount;
+            orderEntity.TotalAmount = totalAmount;
             
             // Add entities to repositories
-            orderRepository.Add(orderEntity);
+            await orderRepository.AddAsync(orderEntity, false);
             
             foreach (var orderDetail in orderDetails)
             {
-                orderDetailRepository.Add(orderDetail);
+                await orderDetailRepository.AddAsync(orderDetail, false);
             }
             
             // Save changes
             var savedChanges = await _unitOfWork.SaveManualChangesAsync();
             
-            return new OperationResult<bool>
+            if (savedChanges > 0)
             {
-                IsError = savedChanges <= 0,
-                Payload = savedChanges > 0,
-                Message = savedChanges > 0 ? "Order created successfully" : "Failed to create order"
-            };
+                return OperationResult<bool>.Success(
+                    payload: true,
+                    statusCode: StatusCode.Created,
+                    message: "Order created successfully"
+                );
+            }
+            else
+            {
+                return OperationResult<bool>.Failure(
+                    statusCode: StatusCode.BadRequest,
+                    messages: new List<string> { "Failed to create order" }
+                );
+            }
         }
         catch (Exception ex)
         {
-            return new OperationResult<bool>
-            {
-                IsError = true,
-                Payload = false,
-                Message = $"Error creating order: {ex.Message}"
-            };
+            return OperationResult<bool>.Failure(
+                statusCode: StatusCode.ServerError,
+                messages: new List<string> { $"Error creating order: {ex.Message}" }
+            );
         }
     }
 
@@ -156,12 +172,10 @@ public class OrderService : IOrderService
             var existingOrder = await repository.FindAsync(request.Id!.Value);
             if (existingOrder == null)
             {
-                return new OperationResult<bool>
-                {
-                    IsError = true,
-                    Payload = false,
-                    Message = "Order not found"
-                };
+                return OperationResult<bool>.Failure(
+                    statusCode: StatusCode.NotFound,
+                    messages: new List<string> { "Order not found" }
+                );
             }
             
             // Update order properties using ReflectionHelper
@@ -173,21 +187,28 @@ public class OrderService : IOrderService
             // Save changes
             var savedChanges = await _unitOfWork.SaveManualChangesAsync();
             
-            return new OperationResult<bool>
+            if (savedChanges > 0)
             {
-                IsError = savedChanges <= 0,
-                Payload = savedChanges > 0,
-                Message = savedChanges > 0 ? "Order updated successfully" : "Failed to update order"
-            };
+                return OperationResult<bool>.Success(
+                    payload: true,
+                    statusCode: StatusCode.Ok,
+                    message: "Order updated successfully"
+                );
+            }
+            else
+            {
+                return OperationResult<bool>.Failure(
+                    statusCode: StatusCode.BadRequest,
+                    messages: new List<string> { "Failed to update order" }
+                );
+            }
         }
         catch (Exception ex)
         {
-            return new OperationResult<bool>
-            {
-                IsError = true,
-                Payload = false,
-                Message = $"Error updating order: {ex.Message}"
-            };
+            return OperationResult<bool>.Failure(
+                statusCode: StatusCode.ServerError,
+                messages: new List<string> { $"Error updating order: {ex.Message}" }
+            );
         }
     }
 }

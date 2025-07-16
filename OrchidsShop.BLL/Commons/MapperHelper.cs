@@ -24,7 +24,7 @@ public class MapperHelper : Profile
         
         // Order mappings
         CreateMap<Order, QueryOrderResponse>()
-            .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.TotalAmound));
+            .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.TotalAmount));
         CreateMap<CommandOrderRequest, Order>();
         
         // OrderDetail mappings

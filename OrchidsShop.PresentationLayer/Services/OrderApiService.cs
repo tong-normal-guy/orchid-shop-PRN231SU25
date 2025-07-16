@@ -28,21 +28,25 @@ public class OrderApiService
         
         if (queryModel != null)
         {
-            return await _apiHelper.GetWithQueryAsync<OrderModel>(baseUrl, queryModel);
+            return await _apiHelper.GetBllWithQueryAsync<OrderModel>(baseUrl, queryModel);
         }
         
-        return await _apiHelper.GetAsync<OrderModel>(baseUrl);
+        return await _apiHelper.GetBllAsync<OrderModel>(baseUrl);
     }
 
     /// <summary>
-    /// Lấy đơn hàng theo ID
+    /// Lấy đơn hàng theo ID sử dụng tham số ids
     /// </summary>
     /// <param name="id">ID của đơn hàng</param>
     /// <returns>Đơn hàng được tìm thấy</returns>
     public async Task<ApiResponse<List<OrderModel>>?> GetOrderByIdAsync(Guid id)
     {
-        var url = $"{StringValue.BaseUrl}{OrderEndpoint}/{id}";
-        return await _apiHelper.GetAsync<OrderModel>(url);
+        var baseUrl = StringValue.BaseUrl + OrderEndpoint;
+        var queryModel = new OrderQueryModel
+        {
+            Ids = id.ToString()
+        };
+        return await _apiHelper.GetBllWithQueryAsync<OrderModel>(baseUrl, queryModel);
     }
 
     /// <summary>

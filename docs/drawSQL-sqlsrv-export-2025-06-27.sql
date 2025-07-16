@@ -19,7 +19,7 @@ ALTER TABLE
     "categories" ADD CONSTRAINT "categories_id_primary" PRIMARY KEY("id");
 CREATE TABLE "orders"(
     "id" uniqueidentifier NOT NULL,
-    "total_amound" DECIMAL(8, 2) NOT NULL,
+    "total_amount" DECIMAL(8, 2) NOT NULL,
     "order_date" DATE NOT NULL,
     "account_id" uniqueidentifier NOT NULL,
     "status" VARCHAR(255) NOT NULL

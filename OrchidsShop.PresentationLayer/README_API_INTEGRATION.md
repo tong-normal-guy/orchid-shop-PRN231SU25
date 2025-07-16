@@ -533,6 +533,10 @@ public async Task<IActionResult> TestConnection()
 - **Problem**: Frontend using HTTPS, backend using HTTP causing connection failures
 - **Solution**: Updated `StringValue.BaseUrl` to use HTTP (`http://localhost:5077/api/`)
 
+#### Issue: Order Sorting Property Mismatch (RESOLVED ✅)
+- **Problem**: Frontend sends `TotalAmount` but backend entity has `TotalAmound` (typo)
+- **Solution**: Property mapping handled in service layer to map `TotalAmount` → `TotalAmound`
+
 #### Issue: Property Name Typo (KNOWN LIMITATION ⚠️)
 - **Problem**: Backend API uses `IsNarutal` (with typo) instead of `IsNatural`  
 - **Solution**: Frontend models maintain the typo to match API exactly
@@ -602,6 +606,8 @@ For detailed API documentation and testing, refer to `OrchidsShop.API.http` file
 3. **HTTP/HTTPS Configuration** - Corrected URL scheme for local development
 4. **Response Format Handling** - Added support for dual API response formats
 5. **Auto-Success Detection** - Automatic success flag setting for Categories API
+6. **Order Sorting Issue** - Fixed TotalAmount property mapping for order queries
+7. **UI Improvements** - Removed role display from customer information and hidden print/download actions
 
 ### 🔧 ApiHelper Improvements
 
@@ -621,6 +627,14 @@ The `ApiHelper` class now includes:
 - Real-time API connectivity
 - Error message display
 - Loading states and feedback
+- Order management with status tracking
+- Customer order history with filtering and sorting
+
+**🎨 Recent UI Improvements:**
+- Removed role display from customer information for privacy
+- Hidden print and download actions (reserved for future implementation)
+- Enhanced order details page with timeline visualization
+- Improved order status badges and action buttons
 
 ### 🚀 Usage in Production
 

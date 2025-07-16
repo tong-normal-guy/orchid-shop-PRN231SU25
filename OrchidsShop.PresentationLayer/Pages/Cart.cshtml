@@ -5,6 +5,9 @@
     ViewData["ActivePage"] = "Cart";
 }
 
+@* Anti-forgery token for AJAX requests *@
+@Html.AntiForgeryToken()
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
@@ -71,32 +74,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal:</span>
-                        <span id="subtotalAmount">$0.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Shipping:</span>
-                        <span id="shippingAmount">$0.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Tax (8.5%):</span>
-                        <span id="taxAmount">$0.00</span>
-                    </div>
-                    <hr>
                     <div class="d-flex justify-content-between mb-3">
                         <strong>Total:</strong>
                         <strong id="totalAmount">$0.00</strong>
-                    </div>
-
-                    <!-- Shipping Options -->
-                    <div class="mb-3">
-                        <label class="form-label">Shipping Method</label>
-                        <select class="form-select" id="shippingMethod" onchange="updateShipping()">
-                            <option value="standard">Standard Shipping - FREE</option>
-                            <option value="expedited">Expedited Shipping - $9.99</option>
-                            <option value="overnight">Overnight Shipping - $24.99</option>
-                        </select>
                     </div>
 
                     <!-- Checkout Button -->
@@ -125,24 +105,7 @@
                 </div>
             </div>
 
-            <!-- Promo Code -->
-            <div class="card shadow-soft mt-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="bi bi-tag me-2"></i>Promo Code
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Enter promo code" id="promoCode">
-                        <button class="btn btn-outline-secondary" onclick="applyPromoCode()">Apply</button>
-                    </div>
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Try: WELCOME10 for 10% off your first order
-                    </small>
-                </div>
-            </div>
+
         </div>
     </div>
 </div>
@@ -151,11 +114,7 @@
     <script>
         // Global variables
         let cart = [];
-        let subtotal = 0;
-        let shipping = 0;
-        let tax = 0;
         let total = 0;
-        let promoDiscount = 0;
 
         $(document).ready(function() {
             loadCart();
@@ -298,95 +257,19 @@
             localStorage.setItem('orchidCart', JSON.stringify(cart));
         }
 
-        // Update shipping based on selected method
-        function updateShipping() {
-            const shippingMethod = document.getElementById('shippingMethod').value;
-            
-            switch (shippingMethod) {
-                case 'standard':
-                    shipping = 0;
-                    break;
-                case 'expedited':
-                    shipping = 9.99;
-                    break;
-                case 'overnight':
-                    shipping = 24.99;
-                    break;
-                default:
-                    shipping = 0;
-            }
-            
-            updateTotals();
-        }
-
         // Update order totals
         function updateTotals() {
-            // Calculate subtotal
-            subtotal = cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
-            
-            // Calculate tax (8.5% on subtotal)
-            tax = subtotal * 0.085;
-            
-            // Apply promo discount
-            let discountAmount = subtotal * (promoDiscount / 100);
-            
-            // Calculate total
-            total = subtotal - discountAmount + shipping + tax;
+            // Calculate total directly from cart items
+            total = cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
             
             // Update display
-            document.getElementById('subtotalAmount').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('shippingAmount').textContent = `$${shipping.toFixed(2)}`;
-            document.getElementById('taxAmount').textContent = `$${tax.toFixed(2)}`;
             document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
-            
-            // Show discount if applied
-            if (promoDiscount > 0) {
-                if (!document.getElementById('discountRow')) {
-                    const discountHtml = `
-                        <div class="d-flex justify-content-between mb-2 text-success" id="discountRow">
-                            <span>Discount (${promoDiscount}%):</span>
-                            <span>-$${discountAmount.toFixed(2)}</span>
-                        </div>
-                    `;
-                    document.getElementById('taxAmount').parentElement.insertAdjacentHTML('afterend', discountHtml);
-                } else {
-                    document.querySelector('#discountRow span:last-child').textContent = `-$${discountAmount.toFixed(2)}`;
-                }
-            }
         }
 
-        // Apply promo code
-        function applyPromoCode() {
-            const promoCodeInput = document.getElementById('promoCode');
-            const code = promoCodeInput.value.trim().toUpperCase();
-            
-            if (!code) {
-                showAlert('warning', 'Please enter a promo code');
-                return;
-            }
-            
-            // Simple promo code validation (in real app, this would be server-side)
-            const validCodes = {
-                'WELCOME10': 10,
-                'SAVE15': 15,
-                'ORCHID20': 20
-            };
-            
-            if (validCodes[code]) {
-                promoDiscount = validCodes[code];
-                updateTotals();
-                showAlert('success', `Promo code applied! ${promoDiscount}% discount`);
-                promoCodeInput.value = '';
-                promoCodeInput.disabled = true;
-                document.querySelector('[onclick="applyPromoCode()"]').textContent = 'Applied';
-                document.querySelector('[onclick="applyPromoCode()"]').disabled = true;
-            } else {
-                showAlert('danger', 'Invalid promo code');
-            }
-        }
+
 
         // Proceed to checkout
-        function proceedToCheckout() {
+        async function proceedToCheckout() {
             if (cart.length === 0) {
                 showAlert('warning', 'Your cart is empty');
                 return;
@@ -402,16 +285,72 @@
                 </text>
             }
 
-            // For now, show a placeholder checkout message
-            const orderSummary = `
-                Items: ${cart.length}
-                Subtotal: $${subtotal.toFixed(2)}
-                Shipping: $${shipping.toFixed(2)}
-                Tax: $${tax.toFixed(2)}
-                Total: $${total.toFixed(2)}
-            `;
-            
-            showAlert('info', `Checkout functionality coming soon!<br><br><strong>Order Summary:</strong><br>${orderSummary.replace(/\n/g, '<br>')}`, 8000);
+            // Show loading state
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            const originalText = checkoutBtn.innerHTML;
+            checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            checkoutBtn.disabled = true;
+
+            try {
+                // Get user ID from session (you might need to adjust this based on your session structure)
+                const userEmail = '@ViewContext.HttpContext.Session.GetString("UserEmail")';
+                
+                if (!userEmail) {
+                    showAlert('danger', 'User session expired. Please login again.');
+                    window.location.href = '/Auth/Login?returnUrl=' + encodeURIComponent('/Cart');
+                    return;
+                }
+
+                // Prepare order details from cart
+                const orderDetails = cart.map(item => ({
+                    orchidId: item.orchidId,
+                    quantity: item.quantity,
+                    price: item.price
+                }));
+
+                // Create order request (accountId will be set by backend from session)
+                const orderRequest = {
+                    orderDetails: orderDetails
+                };
+
+                // Send request to create order  
+                const response = await fetch('/Cart?handler=CreateOrder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify(orderRequest)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Clear cart after successful order
+                    cart = [];
+                    saveCart();
+                    renderCart();
+                    updateTotals();
+                    updateCartBadge();
+
+                    // Show success message
+                    showAlert('success', `Order created successfully! Order total: $${total.toFixed(2)}`, 5000);
+                    
+                    // Redirect to orders page after a delay
+                    setTimeout(() => {
+                        window.location.href = '/Orders';
+                    }, 2000);
+                } else {
+                    showAlert('danger', result.message || 'Failed to create order. Please try again.');
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                showAlert('danger', 'An error occurred during checkout. Please try again.');
+            } finally {
+                // Restore button state
+                checkoutBtn.innerHTML = originalText;
+                checkoutBtn.disabled = false;
+            }
         }
     </script>
 } 

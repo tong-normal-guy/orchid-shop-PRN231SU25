@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using OrchidsShop.PresentationLayer.Models.Commons;
 
 namespace OrchidsShop.PresentationLayer.Services;
@@ -7,11 +8,13 @@ namespace OrchidsShop.PresentationLayer.Services;
 public class ApiHelper
 {
     private readonly HttpClient _httpClient;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public ApiHelper(HttpClient httpClient)
+    public ApiHelper(HttpClient httpClient, IHttpContextAccessor httpContextAccessor)
     {
         _httpClient = httpClient;
+        _httpContextAccessor = httpContextAccessor;
         _jsonOptions = new JsonSerializerOptions 
         { 
             PropertyNameCaseInsensitive = true,
@@ -19,11 +22,21 @@ public class ApiHelper
         };
     }
 
+    private void AddAuthorizationHeader()
+    {
+        var jwtToken = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+        if (!string.IsNullOrEmpty(jwtToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+        }
+    }
+
         // GET request - Returns ApiResponse<List<T>> for paginated results (Categories format)
         public async Task<ApiResponse<List<TData>>?> GetAsync<TData>(string url)
         {
             try
             {
+                AddAuthorizationHeader();
                 var response = await _httpClient.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode)
@@ -64,6 +77,7 @@ public class ApiHelper
         {
             try
             {
+                AddAuthorizationHeader();
                 var response = await _httpClient.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode)
@@ -136,6 +150,7 @@ public class ApiHelper
         {
             try
             {
+                AddAuthorizationHeader();
                 var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(url, content);
 
@@ -169,6 +184,7 @@ public class ApiHelper
         {
             try
             {
+                // Don't add authorization header for login requests
                 var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(url, content);
 
@@ -239,6 +255,7 @@ public class ApiHelper
         {
             try
             {
+                AddAuthorizationHeader();
                 var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PutAsync(url, content);
 
@@ -272,6 +289,7 @@ public class ApiHelper
         {
             try
             {
+                AddAuthorizationHeader();
                 var response = await _httpClient.DeleteAsync(url);
 
                 if (!response.IsSuccessStatusCode)
@@ -312,9 +330,15 @@ public class ApiHelper
                 var value = prop.GetValue(queryParams);
                 if (value != null)
                 {
-                    if (value is IEnumerable<string> list)
+                    if (value is IEnumerable<Guid> guidList)
                     {
-                        foreach (var item in list)
+                        // Handle List<Guid> for Ids parameter - convert to comma-separated string
+                        var guidStrings = guidList.Select(g => g.ToString());
+                        queryString.Add($"{prop.Name}={Uri.EscapeDataString(string.Join(",", guidStrings))}");
+                    }
+                    else if (value is IEnumerable<string> stringList)
+                    {
+                        foreach (var item in stringList)
                         {
                             queryString.Add($"{prop.Name}={Uri.EscapeDataString(item)}");
                         }
