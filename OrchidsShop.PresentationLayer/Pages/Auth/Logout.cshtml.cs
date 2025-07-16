@@ -14,35 +14,38 @@ public class LogoutModel : PageModel
 
     public IActionResult OnGet()
     {
-        return OnPost();
+        return ProcessLogout();
     }
 
     public IActionResult OnPost()
     {
+        return ProcessLogout();
+    }
+
+    private IActionResult ProcessLogout()
+    {
         try
         {
-            // Get user email before clearing session for logging
-            var userEmail = HttpContext.Session.GetString("UserEmail");
+            // Get user info before clearing session for logging
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "Unknown";
+            var userName = HttpContext.Session.GetString("UserName") ?? "User";
             
             // Clear all session data
             HttpContext.Session.Clear();
             
             // Log the logout
-            if (!string.IsNullOrEmpty(userEmail))
-            {
-                _logger.LogInformation($"User {userEmail} logged out successfully");
-            }
+            _logger.LogInformation($"User {userEmail} logged out successfully");
             
-            // Set success message
-            TempData["SuccessMessage"] = "You have been logged out successfully.";
+            // Set success message with personalized greeting
+            TempData["SuccessMessage"] = $"Goodbye {userName}! You have been logged out successfully.";
             
-            // Redirect to home page
+            // Redirect directly to home page
             return RedirectToPage("/Index");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during logout");
-            TempData["ErrorMessage"] = "An error occurred during logout.";
+            TempData["ErrorMessage"] = "An error occurred during logout, but you have been signed out.";
             return RedirectToPage("/Index");
         }
     }

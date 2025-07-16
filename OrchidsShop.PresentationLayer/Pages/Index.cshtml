@@ -450,7 +450,12 @@ image.png                            <i class="bi bi-shop me-2"></i>Browse All P
                                             </p>
                                             <div class="d-flex justify-content-between align-items-center mt-auto">
                                                 <span class="price-tag">$@orchid.Price?.ToString("F2")</span>
-                                                <button class="btn btn-orchid btn-sm" onclick="addToCart('@orchid.Id', '@orchid.Name', @orchid.Price)" title="Add to Cart">
+                                                <button class="btn btn-orchid btn-sm add-to-cart-btn" 
+                                                        data-orchid-id="@orchid.Id" 
+                                                        data-orchid-name="@orchid.Name" 
+                                                        data-orchid-price="@orchid.Price" 
+                                                        data-orchid-image="@(string.IsNullOrEmpty(orchid.Url) ? "/assets/logos/orchid-openai.png" : orchid.Url)" 
+                                                        title="Add to Cart">
                                                     <i class="bi bi-cart-plus me-1"></i>Add to Cart
                                                 </button>
                                             </div>
@@ -539,21 +544,19 @@ image.png                            <i class="bi bi-shop me-2"></i>Browse All P
             window.location.href = '/?view=products';
         }
 
-        function addToCart(id, name, price) {
-            // Show success feedback
-            const button = event.target.closest('button');
-            const originalText = button.innerHTML;
+        // Cart animation handler - called after the main addToCart function
+        function handleCartAnimation(buttonElement) {
+            const originalText = buttonElement.innerHTML;
             
-            button.innerHTML = '<i class="bi bi-check me-1"></i>Added!';
-            button.className = 'btn btn-success btn-sm';
+            buttonElement.innerHTML = '<i class="bi bi-check me-1"></i>Added!';
+            buttonElement.className = 'btn btn-success btn-sm';
+            buttonElement.disabled = true;
             
             setTimeout(() => {
-                button.innerHTML = originalText;
-                button.className = 'btn btn-orchid btn-sm';
+                buttonElement.innerHTML = originalText;
+                buttonElement.className = 'btn btn-orchid btn-sm';
+                buttonElement.disabled = false;
             }, 2000);
-            
-            // You can integrate with actual cart functionality here
-            console.log(`Added "${name}" to cart for $${price}`);
         }
 
         // Initialize
@@ -585,6 +588,27 @@ image.png                            <i class="bi bi-shop me-2"></i>Browse All P
                     applyFilters();
                 }
             });
+
+            // Add event listeners for add to cart buttons
+            setupAddToCartEventListeners();
         });
+
+        // Setup event listeners for add to cart buttons
+        function setupAddToCartEventListeners() {
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const orchidId = this.getAttribute('data-orchid-id');
+                    const orchidName = this.getAttribute('data-orchid-name');
+                    const orchidPrice = parseFloat(this.getAttribute('data-orchid-price'));
+                    const orchidImage = this.getAttribute('data-orchid-image');
+                    
+                    if (addToCart(orchidId, orchidName, orchidPrice, orchidImage)) {
+                        handleCartAnimation(this);
+                    }
+                });
+            });
+        }
     </script>
 }

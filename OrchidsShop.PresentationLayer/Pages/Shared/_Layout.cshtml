@@ -189,22 +189,36 @@
         }
 
         // Add item to cart
-        function addToCart(orchidId, name, price, imageUrl, quantity = 1) {
+        function addToCart(orchidId, name, price, imageUrl = null, quantity = 1) {
             try {
+                // Validate inputs
+                if (!orchidId || !name || price == null) {
+                    showAlert('danger', 'Error: Missing product information');
+                    return false;
+                }
+
+                // Parse price if it's a string
+                const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+                if (isNaN(numericPrice) || numericPrice < 0) {
+                    showAlert('danger', 'Error: Invalid price');
+                    return false;
+                }
+
                 let cart = JSON.parse(localStorage.getItem('orchidCart') || '[]');
                 
                 const existingItem = cart.find(item => item.orchidId === orchidId);
                 if (existingItem) {
                     existingItem.quantity += quantity;
                 } else {
-                    cart.push({
+                    const newItem = {
                         orchidId: orchidId,
                         name: name,
-                        price: price,
-                        imageUrl: imageUrl,
+                        price: numericPrice,
+                        imageUrl: imageUrl || '/assets/logos/orchid-openai.png',
                         quantity: quantity,
                         addedAt: new Date().toISOString()
-                    });
+                    };
+                    cart.push(newItem);
                 }
                 
                 localStorage.setItem('orchidCart', JSON.stringify(cart));
@@ -245,13 +259,12 @@
 
         // Logout function
         function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                // Clear any local storage related to user
-                localStorage.removeItem('userToken');
-                
-                // Redirect to logout endpoint (which will clear session)
-                window.location.href = '/Auth/Logout';
-            }
+            // Clear any local storage related to user
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('orchidCart'); // Clear cart on logout
+            
+            // Redirect to logout endpoint (which will clear session)
+            window.location.href = '/Auth/Logout';
         }
 
         // Navigate to show all orchids (for Products link)

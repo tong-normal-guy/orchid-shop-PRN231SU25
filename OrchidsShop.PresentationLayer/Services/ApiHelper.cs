@@ -164,6 +164,76 @@ public class ApiHelper
             }
         }
 
+        // POST request for login - Returns JWT token string on success
+        public async Task<LoginResponse?> PostLoginAsync<TRequest>(string url, TRequest data)
+        {
+            try
+            {
+                var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync(url, content);
+
+                var responseData = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Try to parse error response in BLL format
+                    try
+                    {
+                        var errorResponse = JsonSerializer.Deserialize<BllOperationResponse<LoginData>>(responseData, _jsonOptions);
+                        return new LoginResponse
+                        {
+                            Success = false,
+                            Message = errorResponse?.Message ?? responseData,
+                            Data = null,
+                            Errors = errorResponse?.Errors?.Select(e => e.ToString()).ToList() ?? new List<string> { responseData }
+                        };
+                    }
+                    catch
+                    {
+                        return new LoginResponse
+                        {
+                            Success = false,
+                            Message = responseData,
+                            Data = null,
+                            Errors = new List<string> { responseData }
+                        };
+                    }
+                }
+
+                // Parse successful BLL response format
+                var bllResponse = JsonSerializer.Deserialize<BllOperationResponse<LoginData>>(responseData, _jsonOptions);
+                
+                if (bllResponse == null)
+                {
+                    return new LoginResponse
+                    {
+                        Success = false,
+                        Message = "Failed to parse response",
+                        Data = null,
+                        Errors = new List<string> { "Failed to parse response" }
+                    };
+                }
+
+                return new LoginResponse
+                {
+                    Success = !bllResponse.IsError,
+                    Message = bllResponse.Message,
+                    Data = bllResponse.Payload,
+                    Errors = bllResponse.Errors?.Select(e => e.ToString()).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                return new LoginResponse
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = null,
+                    Errors = new List<string> { ex.Message }
+                };
+            }
+        }
+
         // PUT request - Returns ApiOperationResponse for update operations
         public async Task<ApiOperationResponse?> PutAsync<TRequest>(string url, TRequest data)
         {

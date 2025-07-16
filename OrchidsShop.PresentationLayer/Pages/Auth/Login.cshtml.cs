@@ -47,18 +47,17 @@ public class LoginModel : PageModel
             // Call the authentication API
             var response = await _accountService.LoginAsync(LoginRequest);
 
-            if (response?.Success == true)
+            if (response?.Success == true && response.Data?.Token != null)
             {
                 // Store user information in session
-                HttpContext.Session.SetString("UserEmail", LoginRequest.Email ?? "");
+                HttpContext.Session.SetString("UserEmail", response.Data.Email ?? LoginRequest.Email ?? "");
+                HttpContext.Session.SetString("JwtToken", response.Data.Token);
+                HttpContext.Session.SetString("UserName", response.Data.Name ?? LoginRequest.Email?.Split('@')[0] ?? "User");
+                HttpContext.Session.SetString("UserRole", response.Data.Role ?? "Customer");
                 
-                // If the login response includes user details, store them
-                if (!string.IsNullOrEmpty(response.Message))
+                if (response.Data.UserId.HasValue)
                 {
-                    // Assuming the message contains user info or we can parse it
-                    // For now, we'll extract the name from email
-                    var displayName = LoginRequest.Email?.Split('@')[0] ?? "User";
-                    HttpContext.Session.SetString("UserName", displayName);
+                    HttpContext.Session.SetString("UserId", response.Data.UserId.Value.ToString());
                 }
 
                 // Set session timeout based on RememberMe
@@ -68,7 +67,7 @@ public class LoginModel : PageModel
                     HttpContext.Session.SetString("RememberMe", "true");
                 }
 
-                _logger.LogInformation($"User {LoginRequest.Email} logged in successfully");
+                _logger.LogInformation($"User {response.Data.Email} logged in successfully");
 
                 // Redirect to return URL or home page
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -76,16 +75,26 @@ public class LoginModel : PageModel
                     return Redirect(returnUrl);
                 }
                 
-                TempData["SuccessMessage"] = "Welcome back! You have been logged in successfully.";
+                TempData["SuccessMessage"] = $"Welcome back, {response.Data.Name}! You have been logged in successfully.";
                 return RedirectToPage("/Index");
             }
             else
             {
                 // Handle authentication failure
-                ModelState.AddModelError(string.Empty, response?.Message ?? "Invalid email or password. Please try again.");
-                TempData["ErrorMessage"] = response?.Message ?? "Invalid login credentials.";
+                var errorMessage = response?.Message ?? "Invalid email or password. Please try again.";
+                ModelState.AddModelError(string.Empty, errorMessage);
+                TempData["ErrorMessage"] = errorMessage;
                 
-                _logger.LogWarning($"Failed login attempt for {LoginRequest.Email}");
+                // Log detailed error information
+                if (response?.Errors != null && response.Errors.Any())
+                {
+                    _logger.LogWarning($"Failed login attempt for {LoginRequest.Email}. Errors: {string.Join(", ", response.Errors)}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed login attempt for {LoginRequest.Email}. Message: {response?.Message}");
+                }
+                
                 return Page();
             }
         }

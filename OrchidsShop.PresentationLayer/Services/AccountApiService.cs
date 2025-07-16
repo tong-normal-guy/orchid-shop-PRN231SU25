@@ -22,10 +22,10 @@ public class AccountApiService
     /// </summary>
     /// <param name="loginRequest">Thông tin đăng nhập</param>
     /// <returns>Kết quả đăng nhập</returns>
-    public async Task<ApiOperationResponse?> LoginAsync(LoginRequestModel loginRequest)
+    public async Task<LoginResponse?> LoginAsync(LoginRequestModel loginRequest)
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/login";
-        return await _apiHelper.PostAsync(url, loginRequest);
+        return await _apiHelper.PostLoginAsync(url, loginRequest);
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace OrchidsShop.PresentationLayer.Models.Commons;
 
 /// <summary>
@@ -47,22 +49,46 @@ public class ApiOperationResponse
 /// </summary>
 public class PaginationModel
 {
-    [System.Text.Json.Serialization.JsonPropertyName("pageIndex")]
+    // JSON property mapping for API compatibility
+    [JsonPropertyName("pageIndex")]
     public int PageIndex { get; set; }
     
-    [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+    [JsonPropertyName("pageSize")] 
     public int PageSize { get; set; }
     
-    [System.Text.Json.Serialization.JsonPropertyName("totalItemsCount")]
+    [JsonPropertyName("totalItemsCount")]
     public int TotalItemsCount { get; set; }
     
-    [System.Text.Json.Serialization.JsonPropertyName("totalPagesCount")]
+    [JsonPropertyName("totalPagesCount")]
     public int TotalPagesCount { get; set; }
     
-    // Helper properties for consistent interface
+    // Computed properties for consistent interface
     public int PageNumber => PageIndex + 1;
-    public int TotalRecords => TotalItemsCount;
+    public int TotalRecords => TotalItemsCount; 
     public int TotalPages => TotalPagesCount;
+}
+
+/// <summary>
+/// Response model for login operations that return JWT tokens
+/// </summary>
+public class LoginResponse
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public LoginData? Data { get; set; }
+    public List<string>? Errors { get; set; }
+}
+
+/// <summary>
+/// Login data containing token and user information
+/// </summary>
+public class LoginData
+{
+    public string? Token { get; set; }
+    public string? Email { get; set; }
+    public string? Name { get; set; }
+    public string? Role { get; set; }
+    public Guid? UserId { get; set; }
 }
 
 /// <summary>

@@ -167,7 +167,9 @@
                 cart = JSON.parse(localStorage.getItem('orchidCart') || '[]');
                 renderCart();
                 updateTotals();
-                updateCartBadge();
+                if (typeof updateCartBadge === 'function') {
+                    updateCartBadge();
+                }
             } catch (error) {
                 console.error('Error loading cart:', error);
                 cart = [];

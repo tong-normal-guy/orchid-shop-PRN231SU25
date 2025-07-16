@@ -29,17 +29,17 @@ public class AccountService
     }
 
     /// <summary>
-    /// Authenticates user login credentials and returns JWT token.
+    /// Authenticates user login credentials and returns JWT token with user information.
     /// </summary>
     /// <param name="request">Login request containing email and password.</param>
-    /// <returns>OperationResult with JWT token if successful.</returns>
-    public async Task<OperationResult<string>> LoginAsync(CommandAccountRequest request)
+    /// <returns>OperationResult with LoginResponse containing token and user details.</returns>
+    public async Task<OperationResult<LoginResponse>> LoginAsync(CommandAccountRequest request)
     {
-                try
+        try
         {
             if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             {
-                return OperationResult<string>.Failure(StatusCode.BadRequest, 
+                return OperationResult<LoginResponse>.Failure(StatusCode.BadRequest, 
                     new List<string> { "Email and password are required." });
             }
 
@@ -48,7 +48,7 @@ public class AccountService
 
             if (account == null)
             {
-                return OperationResult<string>.Failure(StatusCode.BadRequest, 
+                return OperationResult<LoginResponse>.Failure(StatusCode.BadRequest, 
                     new List<string> { "Invalid email or password." });
             }
 
@@ -59,18 +59,28 @@ public class AccountService
 
             if (accountWithRole == null)
             {
-                return OperationResult<string>.Failure(StatusCode.ServerError, 
+                return OperationResult<LoginResponse>.Failure(StatusCode.ServerError, 
                     new List<string> { "Failed to load account information." });
             }
 
             // Generate JWT token
             var token = await GenerateToken(accountWithRole, accountWithRole.Role.Name);
             
-            return OperationResult<string>.Success(token, StatusCode.Ok, "Login successful.");
+            // Create login response with token and user details
+            var loginResponse = new LoginResponse
+            {
+                Token = token,
+                Email = accountWithRole.Email,
+                Name = accountWithRole.Name,
+                Role = accountWithRole.Role.Name,
+                UserId = accountWithRole.Id
+            };
+            
+            return OperationResult<LoginResponse>.Success(loginResponse, StatusCode.Ok, "Login successful.");
         }
         catch (Exception ex)
         {
-            return OperationResult<string>.Failure(StatusCode.ServerError, 
+            return OperationResult<LoginResponse>.Failure(StatusCode.ServerError, 
                 new List<string> { $"An error occurred during login: {ex.Message}" });
         }
     }

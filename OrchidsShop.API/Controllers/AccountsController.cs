@@ -25,13 +25,35 @@ namespace OrchidsShop.API.Controllers
                          "\n\n**Trường bắt buộc:**" +
                          "\n- email: string (địa chỉ email hợp lệ)" +
                          "\n- password: string (mật khẩu)" +
-                         "\n\n**Trả về:** Token xác thực và thông tin người dùng",
+                         "\n\n**Trả về:** OperationResult với token và thông tin người dùng trong payload",
             Tags = new[] { Tags }
         )]
         public async Task<IActionResult> Login([FromBody] CommandAccountRequest request)
         {
             var result = await _service.LoginAsync(request);
-            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+            
+            if (result.IsError)
+            {
+                return BadRequest(new
+                {
+                    statusCode = result.StatusCode.ToString(),
+                    message = result.Message,
+                    isError = true,
+                    payload = (object?)null,
+                    metaData = (object?)null,
+                    errors = result.Errors
+                });
+            }
+
+            return Ok(new
+            {
+                statusCode = result.StatusCode.ToString(),
+                message = result.Message,
+                isError = false,
+                payload = result.Payload,
+                metaData = (object?)null,
+                errors = (object?)null
+            });
         }
 
         [HttpPost("register")]
