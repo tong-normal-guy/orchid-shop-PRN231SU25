@@ -35,6 +35,13 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddHttpContextAccessor();
 
+// Register API services explicitly
+builder.Services.AddScoped<ApiHelper>();
+builder.Services.AddScoped<CategoryApiService>();
+builder.Services.AddScoped<OrchidApiService>();
+builder.Services.AddScoped<AccountApiService>();
+builder.Services.AddScoped<OrderApiService>();
+
 builder.Services.Scan(scan => scan
     .FromEntryAssembly()
     .AddClasses()
@@ -52,6 +59,8 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthorization();
 

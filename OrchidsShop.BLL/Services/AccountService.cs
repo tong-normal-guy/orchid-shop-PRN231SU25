@@ -55,7 +55,7 @@ public class AccountService
             // Load the role information
             var accountWithRole = _unitOfWork.Repository<Account>()
                 .Get(filter: x => x.Id == account.Id, includeProperties: "Role")
-                .FirstOrDefault();
+                .SingleOrDefault();
 
             if (accountWithRole == null)
             {
@@ -125,7 +125,7 @@ public class AccountService
                 RoleId = customerRole.Id
             };
 
-            _unitOfWork.Repository<Account>().Add(newAccount);
+            _unitOfWork.Repository<Account>().AddAsync(newAccount, false);
             var result = await _unitOfWork.SaveManualChangesAsync();
 
             return OperationResult<bool>.Success(result > 0, StatusCode.Created,
@@ -183,7 +183,7 @@ public class AccountService
                 RoleId = role.Id
             };
 
-            await _unitOfWork.Repository<Account>().AddAsync(newAccount);
+            await _unitOfWork.Repository<Account>().AddAsync(newAccount, false);
             var result = await _unitOfWork.SaveManualChangesAsync();
 
             return OperationResult<bool>.Success(result > 0, StatusCode.Created,
@@ -200,20 +200,20 @@ public class AccountService
     /// Retrieves all available roles.
     /// </summary>
     /// <returns>OperationResult with list of roles.</returns>
-    public async Task<OperationResult<List<string>>> GetAllRolesAsync()
+    public async Task<OperationResult<List<QueryRoleResponse>>> GetAllRolesAsync()
     {
         try
         {
-            var roles = _unitOfWork.Repository<Role>()
-                .Get()
-                .Select(x => x.Name)
-                .ToList();
+            var query = _unitOfWork.Repository<Role>()
+                .Get();
 
-            return OperationResult<List<string>>.Success(roles, StatusCode.Ok, "Roles retrieved successfully.");
+            var roles = query.Select(x => _mapper.Map<QueryRoleResponse>(x)).ToList();
+
+            return OperationResult<List<QueryRoleResponse>>.Success(roles, StatusCode.Ok, "Roles retrieved successfully.");
         }
         catch (Exception ex)
         {
-            return OperationResult<List<string>>.Failure(StatusCode.ServerError,
+            return OperationResult<List<QueryRoleResponse>>.Failure(StatusCode.ServerError,
                 new List<string> { $"An error occurred while retrieving roles: {ex.Message}" });
         }
     }
@@ -298,7 +298,7 @@ public class AccountService
             // Use ReflectionHelper to update properties
             ReflectionHepler.UpdateProperties(request, existingAccount, new List<string> { "Id", "ConfirmPassword", "Role" });
 
-            await _unitOfWork.Repository<Account>().UpdateAsync(existingAccount);
+            await _unitOfWork.Repository<Account>().UpdateAsync(existingAccount, false);
             var result = await _unitOfWork.SaveManualChangesAsync();
 
             return OperationResult<bool>.Success(result > 0, StatusCode.Ok,
@@ -321,8 +321,9 @@ public class AccountService
                     new List<string> { "Role already exists." });
             }
 
-            var role = new Role { Name = request.Role };
-            await _unitOfWork.Repository<Role>().AddAsync(role);
+            var id = Guid.NewGuid();
+            var role = new Role { Name = request.Role, Id = id };
+            await _unitOfWork.Repository<Role>().AddAsync(role, false);
             var result = await _unitOfWork.SaveManualChangesAsync();
             return OperationResult<bool>.Success(result > 0, StatusCode.Created,
                 result > 0 ? "Role created successfully." : "Failed to create role.");

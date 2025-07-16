@@ -1,0 +1,415 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.CartModel
+@{
+    ViewData["Title"] = "Shopping Cart";
+    ViewData["ActivePage"] = "Cart";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="gradient-text mb-1">
+                        <i class="bi bi-cart3 me-2"></i>Shopping Cart
+                    </h2>
+                    <p class="text-muted">Review your selected orchids before checkout</p>
+                </div>
+                <button class="btn btn-outline-danger" onclick="clearCart()" id="clearCartBtn">
+                    <i class="bi bi-trash me-1"></i>Clear Cart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Cart Items -->
+        <div class="col-lg-8">
+            <div class="card shadow-soft">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bag me-2"></i>Cart Items
+                        <span class="badge bg-primary ms-2" id="itemCountBadge">0</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Loading State -->
+                    <div id="cartLoading" class="text-center py-5">
+                        <div class="loading-spinner mb-3"></div>
+                        <p class="text-muted">Loading cart items...</p>
+                    </div>
+
+                    <!-- Empty Cart State -->
+                    <div id="emptyCart" class="text-center py-5 d-none">
+                        <i class="bi bi-cart-x text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                        <h4 class="mt-3 text-muted">Your cart is empty</h4>
+                        <p class="text-muted">Add some beautiful orchids to your cart to get started!</p>
+                        <a href="/?view=products" class="btn btn-primary">
+                            <i class="bi bi-flower1 me-2"></i>Browse Orchids
+                        </a>
+                    </div>
+
+                    <!-- Cart Items Container -->
+                    <div id="cartItems"></div>
+                </div>
+            </div>
+
+            <!-- Continue Shopping -->
+            <div class="mt-4">
+                <a href="/?view=products" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-2"></i>Continue Shopping
+                </a>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-lg-4">
+            <div class="card shadow-soft">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt me-2"></i>Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="subtotalAmount">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span id="shippingAmount">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax (8.5%):</span>
+                        <span id="taxAmount">$0.00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong id="totalAmount">$0.00</strong>
+                    </div>
+
+                    <!-- Shipping Options -->
+                    <div class="mb-3">
+                        <label class="form-label">Shipping Method</label>
+                        <select class="form-select" id="shippingMethod" onchange="updateShipping()">
+                            <option value="standard">Standard Shipping - FREE</option>
+                            <option value="expedited">Expedited Shipping - $9.99</option>
+                            <option value="overnight">Overnight Shipping - $24.99</option>
+                        </select>
+                    </div>
+
+                    <!-- Checkout Button -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-lg" onclick="proceedToCheckout()" id="checkoutBtn" disabled>
+                            <i class="bi bi-credit-card me-2"></i>Proceed to Checkout
+                        </button>
+                    </div>
+
+                    <!-- Authentication Notice -->
+                    @{
+                        var isLoggedIn = !string.IsNullOrEmpty(ViewContext.HttpContext.Session.GetString("UserEmail"));
+                    }
+                    
+                    @if (!isLoggedIn)
+                    {
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>
+                                <a asp-page="/Auth/Login" class="text-decoration-none">Sign in</a> or 
+                                <a asp-page="/Auth/Register" class="text-decoration-none">create an account</a> 
+                                to complete your purchase.
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Promo Code -->
+            <div class="card shadow-soft mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-tag me-2"></i>Promo Code
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Enter promo code" id="promoCode">
+                        <button class="btn btn-outline-secondary" onclick="applyPromoCode()">Apply</button>
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Try: WELCOME10 for 10% off your first order
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Global variables
+        let cart = [];
+        let subtotal = 0;
+        let shipping = 0;
+        let tax = 0;
+        let total = 0;
+        let promoDiscount = 0;
+
+        $(document).ready(function() {
+            loadCart();
+        });
+
+        // Load cart from localStorage
+        function loadCart() {
+            try {
+                cart = JSON.parse(localStorage.getItem('orchidCart') || '[]');
+                renderCart();
+                updateTotals();
+                updateCartBadge();
+            } catch (error) {
+                console.error('Error loading cart:', error);
+                cart = [];
+                renderCart();
+            } finally {
+                document.getElementById('cartLoading').classList.add('d-none');
+            }
+        }
+
+        // Render cart items
+        function renderCart() {
+            const cartContainer = document.getElementById('cartItems');
+            const emptyCart = document.getElementById('emptyCart');
+            const itemCountBadge = document.getElementById('itemCountBadge');
+            
+            if (cart.length === 0) {
+                cartContainer.innerHTML = '';
+                emptyCart.classList.remove('d-none');
+                itemCountBadge.textContent = '0';
+                document.getElementById('checkoutBtn').disabled = true;
+                return;
+            }
+
+            emptyCart.classList.add('d-none');
+            itemCountBadge.textContent = cart.length;
+            document.getElementById('checkoutBtn').disabled = false;
+
+            let html = '';
+            cart.forEach((item, index) => {
+                const itemTotal = (item.price || 0) * (item.quantity || 1);
+                html += `
+                    <div class="cart-item border-bottom p-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 col-sm-3">
+                                <img src="${item.imageUrl || '/assets/logos/orchid-openai.png'}" 
+                                     class="img-fluid rounded orchid-image" alt="${item.name}"
+                                     style="height: 80px; width: 80px; object-fit: cover;"
+                                     onerror="this.src='/assets/logos/orchid-openai.png'">
+                            </div>
+                            <div class="col-md-4 col-sm-9">
+                                <h6 class="fw-bold mb-1">${item.name}</h6>
+                                <p class="text-muted small mb-1">Added: ${new Date(item.addedAt).toLocaleDateString()}</p>
+                                <span class="price-badge">$${(item.price || 0).toFixed(2)} each</span>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="quantity-controls">
+                                    <button class="quantity-btn" onclick="updateQuantity(${index}, ${item.quantity - 1})">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="number" class="quantity-input" value="${item.quantity}" 
+                                           min="1" max="99" onchange="updateQuantity(${index}, this.value)">
+                                    <button class="quantity-btn" onclick="updateQuantity(${index}, ${item.quantity + 1})">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-4 text-end">
+                                <div class="fw-bold text-primary">$${itemTotal.toFixed(2)}</div>
+                            </div>
+                            <div class="col-md-1 col-sm-2 text-end">
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeItem(${index})" title="Remove item">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cartContainer.innerHTML = html;
+        }
+
+        // Update item quantity
+        function updateQuantity(index, newQuantity) {
+            newQuantity = parseInt(newQuantity);
+            
+            if (newQuantity < 1) {
+                removeItem(index);
+                return;
+            }
+            
+            if (newQuantity > 99) {
+                showAlert('warning', 'Maximum quantity is 99 per item');
+                return;
+            }
+
+            cart[index].quantity = newQuantity;
+            saveCart();
+            renderCart();
+            updateTotals();
+            updateCartBadge();
+        }
+
+        // Remove item from cart
+        function removeItem(index) {
+            const item = cart[index];
+            if (confirm(`Remove "${item.name}" from your cart?`)) {
+                cart.splice(index, 1);
+                saveCart();
+                renderCart();
+                updateTotals();
+                updateCartBadge();
+                showAlert('success', 'Item removed from cart');
+            }
+        }
+
+        // Clear entire cart
+        function clearCart() {
+            if (cart.length === 0) {
+                showAlert('info', 'Your cart is already empty');
+                return;
+            }
+
+            if (confirm('Are you sure you want to clear your entire cart?')) {
+                cart = [];
+                saveCart();
+                renderCart();
+                updateTotals();
+                updateCartBadge();
+                showAlert('success', 'Cart cleared successfully');
+            }
+        }
+
+        // Save cart to localStorage
+        function saveCart() {
+            localStorage.setItem('orchidCart', JSON.stringify(cart));
+        }
+
+        // Update shipping based on selected method
+        function updateShipping() {
+            const shippingMethod = document.getElementById('shippingMethod').value;
+            
+            switch (shippingMethod) {
+                case 'standard':
+                    shipping = 0;
+                    break;
+                case 'expedited':
+                    shipping = 9.99;
+                    break;
+                case 'overnight':
+                    shipping = 24.99;
+                    break;
+                default:
+                    shipping = 0;
+            }
+            
+            updateTotals();
+        }
+
+        // Update order totals
+        function updateTotals() {
+            // Calculate subtotal
+            subtotal = cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+            
+            // Calculate tax (8.5% on subtotal)
+            tax = subtotal * 0.085;
+            
+            // Apply promo discount
+            let discountAmount = subtotal * (promoDiscount / 100);
+            
+            // Calculate total
+            total = subtotal - discountAmount + shipping + tax;
+            
+            // Update display
+            document.getElementById('subtotalAmount').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('shippingAmount').textContent = `$${shipping.toFixed(2)}`;
+            document.getElementById('taxAmount').textContent = `$${tax.toFixed(2)}`;
+            document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+            
+            // Show discount if applied
+            if (promoDiscount > 0) {
+                if (!document.getElementById('discountRow')) {
+                    const discountHtml = `
+                        <div class="d-flex justify-content-between mb-2 text-success" id="discountRow">
+                            <span>Discount (${promoDiscount}%):</span>
+                            <span>-$${discountAmount.toFixed(2)}</span>
+                        </div>
+                    `;
+                    document.getElementById('taxAmount').parentElement.insertAdjacentHTML('afterend', discountHtml);
+                } else {
+                    document.querySelector('#discountRow span:last-child').textContent = `-$${discountAmount.toFixed(2)}`;
+                }
+            }
+        }
+
+        // Apply promo code
+        function applyPromoCode() {
+            const promoCodeInput = document.getElementById('promoCode');
+            const code = promoCodeInput.value.trim().toUpperCase();
+            
+            if (!code) {
+                showAlert('warning', 'Please enter a promo code');
+                return;
+            }
+            
+            // Simple promo code validation (in real app, this would be server-side)
+            const validCodes = {
+                'WELCOME10': 10,
+                'SAVE15': 15,
+                'ORCHID20': 20
+            };
+            
+            if (validCodes[code]) {
+                promoDiscount = validCodes[code];
+                updateTotals();
+                showAlert('success', `Promo code applied! ${promoDiscount}% discount`);
+                promoCodeInput.value = '';
+                promoCodeInput.disabled = true;
+                document.querySelector('[onclick="applyPromoCode()"]').textContent = 'Applied';
+                document.querySelector('[onclick="applyPromoCode()"]').disabled = true;
+            } else {
+                showAlert('danger', 'Invalid promo code');
+            }
+        }
+
+        // Proceed to checkout
+        function proceedToCheckout() {
+            if (cart.length === 0) {
+                showAlert('warning', 'Your cart is empty');
+                return;
+            }
+
+            @if (!isLoggedIn)
+            {
+                <text>
+                if (confirm('You need to sign in to complete your purchase. Would you like to sign in now?')) {
+                    window.location.href = '/Auth/Login?returnUrl=' + encodeURIComponent('/Cart');
+                }
+                return;
+                </text>
+            }
+
+            // For now, show a placeholder checkout message
+            const orderSummary = `
+                Items: ${cart.length}
+                Subtotal: $${subtotal.toFixed(2)}
+                Shipping: $${shipping.toFixed(2)}
+                Tax: $${tax.toFixed(2)}
+                Total: $${total.toFixed(2)}
+            `;
+            
+            showAlert('info', `Checkout functionality coming soon!<br><br><strong>Order Summary:</strong><br>${orderSummary.replace(/\n/g, '<br>')}`, 8000);
+        }
+    </script>
+} 

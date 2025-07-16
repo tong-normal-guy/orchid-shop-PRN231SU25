@@ -1,10 +1,12 @@
 # OrchidsShop API Integration Guide
 
-This document explains how to use the Presentation Layer API services to interact with the OrchidsShop.API backend.
+This document explains how to use the Presentation Layer API services to interact with the OrchidsShop.API backend. This guide has been updated to reflect all fixes and improvements made during development.
 
 ## Overview
 
 The Presentation Layer provides a complete set of API services and models that match the structure and responses from OrchidsShop.API. These services handle HTTP communication, error handling, pagination, and data transformation.
+
+**✅ All API integrations have been tested and verified working with real backend endpoints.**
 
 ## Architecture
 
@@ -44,24 +46,83 @@ services.AddScoped<OrderApiService>();
 
 ### 2. Configuration
 
-Update your base URL in `Constants/StringValue.cs`:
+**⚠️ IMPORTANT:** Use HTTP, not HTTPS for local development:
 
 ```csharp
-public const string BaseUrl = "https://localhost:5077/api/";
+// In Constants/StringValue.cs
+public const string BaseUrl = "http://localhost:5077/api/";  // ✅ Correct - HTTP
+// NOT: "https://localhost:5077/api/"                        // ❌ Wrong - HTTPS
+```
+
+### 3. Backend API Setup
+
+Ensure the backend API is running on the correct port:
+- **Backend API**: `http://localhost:5077` (OrchidsShop.API)
+- **Frontend**: `http://localhost:5081` (OrchidsShop.PresentationLayer)
+
+Run both projects simultaneously:
+```bash
+# Terminal 1 - Backend API
+cd OrchidsShop.API
+dotnet run
+
+# Terminal 2 - Frontend
+cd OrchidsShop.PresentationLayer  
+dotnet run
 ```
 
 ## API Response Structure
 
-All API services return consistent response structures:
+The OrchidsShop API uses **two different response formats** that have been properly handled:
 
-### GET Operations (Controllers)
+### Categories API (Standard Format)
 ```csharp
+// Raw API Response: {message, data, pagination}
+{
+  "message": "Orchid categories retrieved successfully",
+  "data": [{"id": "...", "name": "Phalaenopsis"}, ...],
+  "pagination": {
+    "totalItemsCount": 4,
+    "pageSize": 100, 
+    "pageIndex": 0,
+    "totalPagesCount": 1
+  }
+}
+
+// Mapped to: ApiResponse<List<CategoryModel>>
 ApiResponse<List<T>> {
     Message: string?,
     Data: List<T>?,        // Always a list, even for single items
-    Success: bool,
+    Success: bool,         // ✅ Auto-set to true for successful HTTP responses
     Pagination: PaginationModel?,
     Errors: List<string>?
+}
+```
+
+### Orchids API (BLL Format)  
+```csharp
+// Raw API Response: {statusCode, message, isError, payload, metaData, errors}
+{
+  "statusCode": "200",
+  "message": "Query orchids successfully",
+  "isError": false,
+  "payload": [{"id": "...", "name": "Beautiful Orchid"}, ...],
+  "metaData": {
+    "totalItemsCount": 10,
+    "pageSize": 10,
+    "pageIndex": 0, 
+    "totalPagesCount": 1
+  },
+  "errors": null
+}
+
+// Mapped to: ApiResponse<List<OrchidModel>>
+ApiResponse<List<T>> {
+    Success: bool,         // Mapped from !isError
+    Message: string?,      // From message
+    Data: List<T>?,        // From payload
+    Pagination: PaginationModel?, // From metaData
+    Errors: List<string>?  // From errors
 }
 ```
 
@@ -74,13 +135,26 @@ ApiOperationResponse {
 }
 ```
 
-### Pagination Metadata
+### Pagination Metadata (Fixed Property Mapping)
 ```csharp
 PaginationModel {
-    PageNumber: int,
+    // JSON property mapping for API compatibility
+    [JsonPropertyName("pageIndex")]
+    PageIndex: int,
+    
+    [JsonPropertyName("pageSize")] 
     PageSize: int,
-    TotalRecords: int,
-    TotalPages: int
+    
+    [JsonPropertyName("totalItemsCount")]
+    TotalItemsCount: int,
+    
+    [JsonPropertyName("totalPagesCount")]
+    TotalPagesCount: int,
+    
+    // Computed properties for consistent interface
+    PageNumber: int => PageIndex + 1,
+    TotalRecords: int => TotalItemsCount, 
+    TotalPages: int => TotalPagesCount
 }
 ```
 
@@ -300,13 +374,16 @@ var response = await _orchidService.GetOrchidsAsync();
 if (response == null)
 {
     // Handle network/connection error
+    _logger.LogError("API response was null - possible network issue");
     return StatusCode(500, "Connection error");
 }
 
-// Check success flag
+// Check success flag (automatically set for successful HTTP responses)
 if (!response.Success)
 {
     // Handle API error
+    _logger.LogWarning("API returned error. Message: {Message}, Errors: {Errors}", 
+        response.Message, string.Join(", ", response.Errors ?? new List<string>()));
     return BadRequest(new { 
         message = response.Message,
         errors = response.Errors 
@@ -316,11 +393,13 @@ if (!response.Success)
 // Check data availability
 if (response.Data == null || !response.Data.Any())
 {
-    // Handle empty result
+    // Handle empty result (this is normal, not an error)
+    _logger.LogInformation("No data returned from API - empty result set");
     return Ok(new { message = "No data found", data = new List<OrchidModel>() });
 }
 
 // Process successful response
+_logger.LogInformation("Successfully retrieved {Count} items from API", response.Data.Count);
 return Ok(response.Data);
 ```
 
@@ -416,14 +495,22 @@ public async Task<IActionResult> TestConnection()
 {
     try
     {
-        var response = await _categoryService.GetCategoriesAsync();
+        // Test both API formats
+        var categoryResponse = await _categoryService.GetCategoriesAsync();
+        var orchidResponse = await _orchidService.GetOrchidsAsync();
+        
         return Json(new { 
-            connected = response != null,
-            message = response?.Success == true ? "API connected successfully" : response?.Message
+            categoriesConnected = categoryResponse?.Success == true,
+            orchidsConnected = orchidResponse?.Success == true,
+            categoryMessage = categoryResponse?.Message,
+            orchidMessage = orchidResponse?.Message,
+            totalCategories = categoryResponse?.Data?.Count ?? 0,
+            totalOrchids = orchidResponse?.Data?.Count ?? 0
         });
     }
     catch (Exception ex)
     {
+        _logger.LogError(ex, "API connectivity test failed");
         return Json(new { 
             connected = false,
             message = ex.Message 
@@ -432,14 +519,33 @@ public async Task<IActionResult> TestConnection()
 }
 ```
 
-### 2. Validate Response Structure
-The API services are designed to match the exact response structure from OrchidsShop.API:
+### 2. Known Issues & Solutions
 
-- **Controllers** (GET operations) return `{ message, data: [], pagination }`
-- **Endpoints** (POST/PUT/DELETE) return `{ message, success, errors?: [] }`
+#### Issue: Categories Not Loading (RESOLVED ✅)
+- **Problem**: Categories API doesn't include `Success` field in response
+- **Solution**: `ApiHelper.GetAsync()` now automatically sets `Success = true` for successful HTTP responses
 
-### 3. Check Pagination
-All GET operations support pagination:
+#### Issue: Pagination Property Mismatch (RESOLVED ✅)  
+- **Problem**: API returns `{totalItemsCount, pageIndex, totalPagesCount}` but models expected `{TotalRecords, PageNumber, TotalPages}`
+- **Solution**: Added JSON property name attributes to `PaginationModel` with computed properties for compatibility
+
+#### Issue: HTTP vs HTTPS (RESOLVED ✅)
+- **Problem**: Frontend using HTTPS, backend using HTTP causing connection failures
+- **Solution**: Updated `StringValue.BaseUrl` to use HTTP (`http://localhost:5077/api/`)
+
+#### Issue: Property Name Typo (KNOWN LIMITATION ⚠️)
+- **Problem**: Backend API uses `IsNarutal` (with typo) instead of `IsNatural`  
+- **Solution**: Frontend models maintain the typo to match API exactly
+
+### 3. Validate Response Structure
+The API services handle both response formats automatically:
+
+- **Categories API**: `{ message, data: [], pagination }` → `ApiResponse<List<T>>`  
+- **Orchids API**: `{ statusCode, message, isError, payload, metaData, errors }` → `ApiResponse<List<T>>`
+- **Endpoints** (POST/PUT/DELETE): `{ message, success, errors?: [] }` → `ApiOperationResponse`
+
+### 4. Check Pagination
+All GET operations support pagination with automatic property mapping:
 ```csharp
 var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel 
 {
@@ -449,9 +555,11 @@ var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel
     SortDir = "Asc"
 });
 
-// Access pagination metadata
-var totalPages = response?.Pagination?.TotalPages ?? 1;
-var totalRecords = response?.Pagination?.TotalRecords ?? 0;
+// Access pagination metadata (works for both API formats)
+var totalPages = response?.Pagination?.TotalPages ?? 1;        // Computed property
+var totalRecords = response?.Pagination?.TotalRecords ?? 0;    // Computed property
+var pageNumber = response?.Pagination?.PageNumber ?? 1;        // PageIndex + 1
+var pageSize = response?.Pagination?.PageSize ?? 10;           // Direct mapping
 ```
 
 ## API Endpoints Reference
@@ -483,4 +591,59 @@ var totalRecords = response?.Pagination?.TotalRecords ?? 0;
 - `PUT /api/orders` - Update order
 - `DELETE /api/orders` - Delete order
 
-For detailed API documentation and testing, refer to `OrchidsShop.API.http` file. 
+For detailed API documentation and testing, refer to `OrchidsShop.API.http` file.
+
+## Recent Updates & Fixes
+
+### ✅ Fixed Issues (Latest Update)
+
+1. **Categories Loading Issue** - Resolved JSON deserialization problems
+2. **Pagination Property Mapping** - Fixed property name mismatches  
+3. **HTTP/HTTPS Configuration** - Corrected URL scheme for local development
+4. **Response Format Handling** - Added support for dual API response formats
+5. **Auto-Success Detection** - Automatic success flag setting for Categories API
+
+### 🔧 ApiHelper Improvements
+
+The `ApiHelper` class now includes:
+- **Dual Format Support**: `GetAsync()` for Categories, `GetBllAsync()` for Orchids
+- **Auto-Success Setting**: Automatically sets `Success = true` for successful HTTP responses
+- **Property Mapping**: Proper JSON property name handling with `PropertyNamingPolicy = null`
+- **Error Handling**: Comprehensive exception handling with detailed logging
+
+### 📱 Frontend Integration Status
+
+**✅ Fully Working Features:**
+- Categories dropdown population
+- Orchid grid display with pagination
+- Search and filtering functionality  
+- Responsive design across all devices
+- Real-time API connectivity
+- Error message display
+- Loading states and feedback
+
+### 🚀 Usage in Production
+
+The current implementation is production-ready for local development. For deployment:
+
+1. **Update BaseUrl** in `StringValue.cs` to point to production API
+2. **Configure HTTPS** certificates for production environment  
+3. **Environment Variables** for different deployment stages
+4. **Logging Configuration** for production monitoring
+
+```csharp
+// Example production configuration
+public static class StringValue 
+{
+    public static string BaseUrl => Environment.GetEnvironmentVariable("API_BASE_URL") 
+                                   ?? "https://api.orchidshop.com/api/";
+}
+```
+
+### 📋 Future Considerations
+
+- Consider implementing retry logic for failed API calls
+- Add response caching for frequently accessed data
+- Implement request timeout configuration
+- Add API health check endpoints
+- Consider using HttpClientFactory for better connection management 

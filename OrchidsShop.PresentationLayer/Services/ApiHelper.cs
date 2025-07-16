@@ -15,11 +15,11 @@ public class ApiHelper
         _jsonOptions = new JsonSerializerOptions 
         { 
             PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = null // Don't convert to camelCase for API responses
         };
     }
 
-        // GET request - Returns ApiResponse<List<T>> for paginated results
+        // GET request - Returns ApiResponse<List<T>> for paginated results (Categories format)
         public async Task<ApiResponse<List<TData>>?> GetAsync<TData>(string url)
         {
             try
@@ -38,7 +38,15 @@ public class ApiHelper
                 }
 
                 var responseData = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ApiResponse<List<TData>>>(responseData, _jsonOptions);
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<TData>>>(responseData, _jsonOptions);
+                
+                // Categories API doesn't include a Success field, so we set it based on HTTP success
+                if (apiResponse != null)
+                {
+                    apiResponse.Success = true;
+                }
+                
+                return apiResponse;
             }
             catch (Exception ex)
             {
@@ -51,11 +59,76 @@ public class ApiHelper
             }
         }
 
-        // GET request with query parameters
+        // GET request for BLL Operation Result format (Orchids format)
+        public async Task<ApiResponse<List<TData>>?> GetBllAsync<TData>(string url)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    return new ApiResponse<List<TData>>
+                    {
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
+                }
+
+                var responseData = await response.Content.ReadAsStringAsync();
+                var bllResponse = JsonSerializer.Deserialize<BllOperationResponse<List<TData>>>(responseData, _jsonOptions);
+                
+                if (bllResponse == null)
+                {
+                    return new ApiResponse<List<TData>>
+                    {
+                        Success = false,
+                        Message = "Failed to parse response",
+                        Errors = new List<string> { "Failed to parse response" }
+                    };
+                }
+
+                // Convert BLL response to standard ApiResponse format
+                return new ApiResponse<List<TData>>
+                {
+                    Success = bllResponse.Success,
+                    Message = bllResponse.Message,
+                    Data = bllResponse.Payload,
+                    Pagination = bllResponse.MetaData != null ? new PaginationModel
+                    {
+                        PageIndex = bllResponse.MetaData.PageIndex,
+                        PageSize = bllResponse.MetaData.PageSize,
+                        TotalItemsCount = bllResponse.MetaData.TotalItemsCount,
+                        TotalPagesCount = bllResponse.MetaData.TotalPagesCount
+                    } : null,
+                    Errors = bllResponse.Errors?.Select(e => e.ToString()).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<TData>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
+            }
+        }
+
+        // GET request with query parameters (Categories format)
         public async Task<ApiResponse<List<TData>>?> GetWithQueryAsync<TData>(string baseUrl, object queryParams)
         {
             var url = BuildUrlWithQuery(baseUrl, queryParams);
             return await GetAsync<TData>(url);
+        }
+
+        // GET request with query parameters (BLL/Orchids format)
+        public async Task<ApiResponse<List<TData>>?> GetBllWithQueryAsync<TData>(string baseUrl, object queryParams)
+        {
+            var url = BuildUrlWithQuery(baseUrl, queryParams);
+            return await GetBllAsync<TData>(url);
         }
 
         // POST request - Returns ApiOperationResponse for create operations

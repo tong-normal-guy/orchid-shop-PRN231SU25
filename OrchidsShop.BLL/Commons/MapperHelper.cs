@@ -35,5 +35,7 @@ public class MapperHelper : Profile
         CreateMap<Account, QueryAccountResponse>()
             .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name));
         CreateMap<CommandAccountRequest, Account>();
+
+        CreateMap<Role, QueryRoleResponse>();
     }
 }

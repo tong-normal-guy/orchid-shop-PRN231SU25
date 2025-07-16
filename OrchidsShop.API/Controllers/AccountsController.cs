@@ -122,5 +122,20 @@ namespace OrchidsShop.API.Controllers
             var result = await _service.UpdateAsync(id, request);
             return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
         }
+
+        [HttpPost("roles")]
+        [SwaggerOperation(
+            Summary = "Tạo vai trò",
+            Description = "Tạo vai trò mới trong hệ thống." +
+                         "\n\n**Trường bắt buộc:**" +
+                         "\n- name: string (tên vai trò)" +
+                         "\n\n**Trả về:** Kết quả tạo vai trò (OperationResult<bool>)",
+            Tags = new[] { Tags }
+        )]
+        public async Task<IActionResult> CreateRole([FromBody] CommandAccountRequest request)
+        {
+            var result = await _service.CreateRoleAsync(request);
+            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+        }
     }
 }

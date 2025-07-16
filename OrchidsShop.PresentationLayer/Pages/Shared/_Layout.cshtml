@@ -3,48 +3,288 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Orchids Shop</title>
+    <title>@ViewData["Title"] - Orchid Shop</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/OrchidsShop.PresentationLayer.styles.css" asp-append-version="true" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="~/assets/logos/orchid_logo.ico">
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">Orchid Shop</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <!-- Brand with Logo -->
+                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-page="/Index">
+                    <img src="~/assets/logos/orchid-openai.png" alt="Orchid Shop" height="32" class="me-2">
+                    <span class="fw-bold">🌸 Orchid Shop</span>
+                </a>
+
+                <!-- Mobile Toggle Button -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <!-- Navigation Menu -->
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Home" ? "active" : "")" 
+                               asp-area="" asp-page="/Index">
+                                <i class="bi bi-house-door me-1"></i>Home
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Products" ? "active" : "")" 
+                               href="#" onclick="showAllOrchids()">
+                                <i class="bi bi-flower1 me-1"></i>Products
+                            </a>
                         </li>
+                    </ul>
+
+                    <!-- Right Side Navigation -->
+                    <ul class="navbar-nav">
+                        <!-- Cart -->
+                        <li class="nav-item position-relative">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Cart" ? "active" : "")" 
+                               asp-area="" asp-page="/Cart">
+                                <i class="bi bi-cart3 me-1"></i>Cart
+                                <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
+                            </a>
+                        </li>
+
+                        @* Check if user is logged in (session-based) *@
+                        @{
+                            var userEmail = ViewContext.HttpContext.Session.GetString("UserEmail");
+                            var userName = ViewContext.HttpContext.Session.GetString("UserName");
+                            var isLoggedIn = !string.IsNullOrEmpty(userEmail);
+                        }
+
+                        @if (isLoggedIn)
+                        {
+                            <!-- Orders (for logged in users) -->
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Orders" ? "active" : "")" 
+                                   asp-area="" asp-page="/Orders">
+                                    <i class="bi bi-box-seam me-1"></i>Orders
+                                </a>
+                            </li>
+
+                            <!-- User Account Dropdown -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle me-1"></i>@(userName ?? userEmail?.Split('@')[0] ?? "Account")
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-page="/Account">
+                                            <i class="bi bi-person me-2"></i>My Profile
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-page="/Orders">
+                                            <i class="bi bi-box-seam me-2"></i>My Orders
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="logout()">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <!-- Login/Register for non-logged in users -->
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Login" ? "active" : "")" 
+                                   asp-area="" asp-page="/Auth/Login">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Register" ? "active" : "")" 
+                                   asp-area="" asp-page="/Auth/Register">
+                                    <i class="bi bi-person-plus me-1"></i>Register
+                                </a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <main role="main" class="pb-4">
+            <!-- Alert Messages -->
+            <div id="alertContainer" class="mt-3"></div>
+            
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <!-- Footer (Hidden) -->
+    <footer class="footer text-center py-3" style="display: none;">
         <div class="container">
-            &copy; 2025 - Orchid Shop - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            <div class="row">
+                <div class="col-12">
+                    <p class="mb-0">&copy; 2025 Orchid Shop. All rights reserved.</p>
+                </div>
+            </div>
         </div>
     </footer>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" 
+         style="background-color: rgba(0,0,0,0.5); z-index: 9999;">
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="text-center text-white">
+                <div class="loading-spinner mb-3"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <!-- Session and Cart Management -->
+    <script>
+        // Global variables for session management
+        window.isLoggedIn = @Json.Serialize(isLoggedIn);
+        window.userEmail = @Json.Serialize(userEmail ?? "");
+        window.userName = @Json.Serialize(userName ?? "");
+
+        // Initialize cart badge on page load
+        $(document).ready(function() {
+            updateCartBadge();
+        });
+
+        // Update cart badge from session storage
+        function updateCartBadge() {
+            try {
+                const cart = JSON.parse(localStorage.getItem('orchidCart') || '[]');
+                const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+                
+                const badge = document.getElementById('cartBadge');
+                if (totalItems > 0) {
+                    badge.textContent = totalItems;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error updating cart badge:', error);
+            }
+        }
+
+        // Add item to cart
+        function addToCart(orchidId, name, price, imageUrl, quantity = 1) {
+            try {
+                let cart = JSON.parse(localStorage.getItem('orchidCart') || '[]');
+                
+                const existingItem = cart.find(item => item.orchidId === orchidId);
+                if (existingItem) {
+                    existingItem.quantity += quantity;
+                } else {
+                    cart.push({
+                        orchidId: orchidId,
+                        name: name,
+                        price: price,
+                        imageUrl: imageUrl,
+                        quantity: quantity,
+                        addedAt: new Date().toISOString()
+                    });
+                }
+                
+                localStorage.setItem('orchidCart', JSON.stringify(cart));
+                updateCartBadge();
+                
+                showAlert('success', `${name} added to cart!`);
+                return true;
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showAlert('danger', 'Error adding item to cart');
+                return false;
+            }
+        }
+
+        // Show alert messages
+        function showAlert(type, message, duration = 3000) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            document.getElementById('alertContainer').innerHTML = alertHtml;
+            
+            // Auto dismiss after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    const alert = document.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, duration);
+            }
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                // Clear any local storage related to user
+                localStorage.removeItem('userToken');
+                
+                // Redirect to logout endpoint (which will clear session)
+                window.location.href = '/Auth/Logout';
+            }
+        }
+
+        // Navigate to show all orchids (for Products link)
+        function showAllOrchids() {
+            window.location.href = '/?view=products';
+        }
+
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('d-none');
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('d-none');
+        }
+
+        // Update active nav item based on current page
+        function updateActiveNav() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Call on page load
+        $(document).ready(function() {
+            updateActiveNav();
+        });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
