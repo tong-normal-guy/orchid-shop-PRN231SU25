@@ -1,0 +1,26 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["ActivePage"] = "Admin";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="mb-4">
+                <i class="bi bi-gear me-2"></i>Admin Dashboard
+            </h1>
+            <p class="lead mb-4">Welcome to the Orchid Shop administration panel.</p>
+            
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                <a href="/Admin/Orchids" class="btn btn-primary btn-lg px-4 gap-3">
+                    <i class="bi bi-flower1 me-2"></i>Manage Orchids
+                </a>
+                <a href="/" class="btn btn-outline-secondary btn-lg px-4">
+                    <i class="bi bi-house me-2"></i>Back to Shop
+                </a>
+            </div>
+        </div>
+    </div>
+</div> 

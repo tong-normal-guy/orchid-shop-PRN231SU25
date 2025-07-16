@@ -1,12 +1,14 @@
 # OrchidsShop API Integration Guide
 
-This document explains how to use the Presentation Layer API services to interact with the OrchidsShop.API backend. This guide has been updated to reflect all fixes and improvements made during development.
+This document explains how to use the Presentation Layer API services to interact with the OrchidsShop.API backend. This guide has been updated to reflect all fixes and improvements made during development, including the new admin functionality.
 
 ## Overview
 
 The Presentation Layer provides a complete set of API services and models that match the structure and responses from OrchidsShop.API. These services handle HTTP communication, error handling, pagination, and data transformation.
 
 **✅ All API integrations have been tested and verified working with real backend endpoints.**
+
+**🆕 NEW: Admin functionality with full CRUD operations for orchids management.**
 
 ## Architecture
 
@@ -24,8 +26,13 @@ OrchidsShop.PresentationLayer
 │   ├── OrchidApiService.cs
 │   ├── AccountApiService.cs
 │   └── OrderApiService.cs
-└── Examples/
-    └── ApiUsageExamples.cs
+├── Pages/
+│   ├── Admin/            # 🆕 Admin management pages
+│   │   ├── Orchids.cshtml          # Admin dashboard with orchid list
+│   │   ├── CreateOrchid.cshtml     # Create new orchid form
+│   │   └── EditOrchid.cshtml       # Edit existing orchid form
+│   └── Examples/
+│       └── ApiUsageExamples.cs
 ```
 
 ## Setup and Configuration
@@ -70,6 +77,47 @@ dotnet run
 cd OrchidsShop.PresentationLayer  
 dotnet run
 ```
+
+## 🆕 Admin Functionality
+
+### Admin Access Control
+
+The admin functionality is protected by session-based authentication:
+
+```csharp
+// Check admin privileges in page models
+var userRole = HttpContext.Session.GetString("UserRole");
+if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
+{
+    TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+    return RedirectToPage("/Auth/Login");
+}
+```
+
+### Admin Pages
+
+1. **Admin Dashboard** (`/Admin/Orchids`)
+   - View all orchids with search and filtering
+   - Statistics overview (total orchids, categories, orders, customers)
+   - Quick actions for each orchid (edit, view details)
+
+2. **Create Orchid** (`/Admin/CreateOrchid`)
+   - Form to create new orchids
+   - Real-time preview and validation
+   - Category selection dropdown
+
+3. **Edit Orchid** (`/Admin/EditOrchid/{id}`)
+   - Pre-populated form for editing existing orchids
+   - Form validation and error handling
+   - Preview of current orchid information
+
+### Admin Features
+
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Real-time Validation**: Client-side and server-side validation
+- **Search & Filter**: Filter orchids by name and category
+- **Statistics Dashboard**: Overview of system metrics
+- **User-friendly Interface**: Modern UI with loading states and notifications
 
 ## API Response Structure
 
@@ -159,6 +207,152 @@ PaginationModel {
 ```
 
 ## Usage Examples
+
+### 🆕 Admin Orchid Management
+
+```csharp
+// Admin page model example
+public class OrchidsModel : PageModel
+{
+    private readonly OrchidApiService _orchidService;
+    private readonly CategoryApiService _categoryService;
+    
+    public List<OrchidModel> Orchids { get; set; } = new();
+    public List<CategoryModel> Categories { get; set; } = new();
+    
+    public async Task<IActionResult> OnGetAsync()
+    {
+        // Check admin privileges
+        var userRole = HttpContext.Session.GetString("UserRole");
+        if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
+        {
+            TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+            return RedirectToPage("/Auth/Login");
+        }
+        
+        // Load data in parallel
+        var tasks = new[]
+        {
+            LoadOrchidsAsync(),
+            LoadCategoriesAsync()
+        };
+        
+        await Task.WhenAll(tasks);
+        return Page();
+    }
+    
+    private async Task LoadOrchidsAsync()
+    {
+        var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel
+        {
+            PageSize = 100, // Get all orchids for admin
+            SortColumn = "Name",
+            SortDir = "Asc"
+        });
+        
+        if (response?.Success == true && response.Data != null)
+        {
+            Orchids = response.Data;
+        }
+    }
+}
+```
+
+### 🆕 Create Orchid
+
+```csharp
+// Create orchid page model
+public class CreateOrchidModel : PageModel
+{
+    [BindProperty]
+    public OrchidRequestModel Orchid { get; set; } = new();
+    
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+        
+        var response = await _orchidService.CreateOrchidAsync(Orchid);
+        
+        if (response?.Success == true)
+        {
+            TempData["SuccessMessage"] = "Orchid created successfully!";
+            return RedirectToPage("/Admin/Orchids");
+        }
+        else
+        {
+            TempData["ErrorMessage"] = response?.Message ?? "Failed to create orchid.";
+            return Page();
+        }
+    }
+}
+```
+
+### 🆕 Edit Orchid
+
+```csharp
+// Edit orchid page model
+public class EditOrchidModel : PageModel
+{
+    [BindProperty]
+    public OrchidRequestModel Orchid { get; set; } = new();
+    
+    public async Task<IActionResult> OnGetAsync(Guid id)
+    {
+        // Load orchid data
+        var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel
+        {
+            Ids = id.ToString(),
+            PageSize = 1
+        });
+        
+        if (response?.Success == true && response.Data?.Any() == true)
+        {
+            var orchidData = response.Data.First();
+            
+            // Map to request model for form binding
+            Orchid = new OrchidRequestModel
+            {
+                Id = orchidData.Id,
+                Name = orchidData.Name,
+                Description = orchidData.Description,
+                Url = orchidData.Url,
+                Price = orchidData.Price,
+                IsNatural = orchidData.IsNatural,
+                CategoryId = orchidData.Category?.Id
+            };
+            
+            return Page();
+        }
+        
+        TempData["ErrorMessage"] = "Orchid not found.";
+        return RedirectToPage("/Admin/Orchids");
+    }
+    
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+        
+        var response = await _orchidService.UpdateOrchidAsync(Orchid);
+        
+        if (response?.Success == true)
+        {
+            TempData["SuccessMessage"] = "Orchid updated successfully!";
+            return RedirectToPage("/Admin/Orchids");
+        }
+        else
+        {
+            TempData["ErrorMessage"] = response?.Message ?? "Failed to update orchid.";
+            return Page();
+        }
+    }
+}
+```
 
 ### Category Operations
 
@@ -541,6 +735,10 @@ public async Task<IActionResult> TestConnection()
 - **Problem**: Backend API uses `IsNarutal` (with typo) instead of `IsNatural`  
 - **Solution**: Frontend models maintain the typo to match API exactly
 
+#### Issue: Admin Form Data Binding (RESOLVED ✅)
+- **Problem**: Form binding issues with nested models and property mapping
+- **Solution**: Proper model binding with separate display and request models, explicit property mapping
+
 ### 3. Validate Response Structure
 The API services handle both response formats automatically:
 
@@ -608,6 +806,9 @@ For detailed API documentation and testing, refer to `OrchidsShop.API.http` file
 5. **Auto-Success Detection** - Automatic success flag setting for Categories API
 6. **Order Sorting Issue** - Fixed TotalAmount property mapping for order queries
 7. **UI Improvements** - Removed role display from customer information and hidden print/download actions
+8. **🆕 Admin CRUD Operations** - Complete admin functionality with create, read, update operations
+9. **🆕 Form Data Binding** - Fixed model binding issues for admin forms
+10. **🆕 Admin Authentication** - Session-based admin access control
 
 ### 🔧 ApiHelper Improvements
 
@@ -629,12 +830,19 @@ The `ApiHelper` class now includes:
 - Loading states and feedback
 - Order management with status tracking
 - Customer order history with filtering and sorting
+- **🆕 Admin Dashboard** with statistics and orchid management
+- **🆕 Create Orchid** form with validation and preview
+- **🆕 Edit Orchid** form with pre-populated data
+- **🆕 Admin Authentication** and access control
 
 **🎨 Recent UI Improvements:**
 - Removed role display from customer information for privacy
 - Hidden print and download actions (reserved for future implementation)
 - Enhanced order details page with timeline visualization
 - Improved order status badges and action buttons
+- **🆕 Modern admin interface** with gradient headers and responsive design
+- **🆕 Real-time form validation** and preview functionality
+- **🆕 Loading states** and user feedback for all operations
 
 ### 🚀 Usage in Production
 
@@ -660,4 +868,8 @@ public static class StringValue
 - Add response caching for frequently accessed data
 - Implement request timeout configuration
 - Add API health check endpoints
-- Consider using HttpClientFactory for better connection management 
+- Consider using HttpClientFactory for better connection management
+- **🆕 Admin Features**: Add delete functionality for orchids (currently disabled)
+- **🆕 Admin Features**: Add bulk operations for orchids
+- **🆕 Admin Features**: Add image upload functionality
+- **🆕 Admin Features**: Add user management interface 

@@ -1,232 +1,251 @@
-# OrchidsShop 🌺
+# OrchidsShop - ASP.NET Razor Pages Application
 
-A comprehensive orchid e-commerce platform built with .NET 8, featuring a clean N-layer architecture with Repository pattern and application services.
+A modern e-commerce application for selling orchids, built with ASP.NET Razor Pages, featuring a clean UI, RESTful API integration, and comprehensive admin functionality.
 
-## 📋 Table of Contents
+## 🌟 Features
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Technology Stack](#technology-stack)
-- [Database Schema](#database-schema)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [API Documentation](#api-documentation)
-- [Development](#development)
-- [Contributing](#contributing)
+### Customer Features
+- **Product Catalog**: Browse orchids with advanced filtering and search
+- **Shopping Cart**: Add items and manage quantities
+- **Order Management**: View order history and track status
+- **User Authentication**: Secure login and registration system
+- **Responsive Design**: Works perfectly on desktop, tablet, and mobile
 
-## 🌟 Overview
-
-OrchidsShop is a modern e-commerce platform specifically designed for orchid enthusiasts and sellers. The platform provides a complete shopping experience with user authentication, product catalog management, and order processing capabilities.
-
-### Key Features
-
-- **Product Management**: Browse and manage orchid collections with detailed descriptions and pricing
-- **User Authentication**: Secure account management with role-based access control
-- **Order Management**: Complete order processing from cart to delivery
-- **Category Management**: Organize orchids by categories for better navigation
-- **Natural/Artificial Classification**: Distinguish between natural and artificial orchids
+### 🆕 Admin Features
+- **Admin Dashboard**: Complete overview with statistics and orchid management
+- **CRUD Operations**: Create, read, and update orchids (delete functionality planned)
+- **Real-time Search**: Filter orchids by name and category
+- **Form Validation**: Comprehensive client-side and server-side validation
+- **Session-based Security**: Admin-only access with role-based authentication
 
 ## 🏗️ Architecture
 
-The project follows a clean **N-layer architecture** with clear separation of concerns:
-
-```
-┌─────────────────────────────────────────┐
-│           Presentation Layer            │
-│         (Razor Pages + HttpClient)      │
-├─────────────────────────────────────────┤
-│              API Layer                  │
-│           (RESTful Controllers)         │
-├─────────────────────────────────────────┤
-│           Business Logic Layer          │
-│          (Application Services)        │
-├─────────────────────────────────────────┤
-│           Data Access Layer             │
-│      (Repository + Unit of Work)       │
-├─────────────────────────────────────────┤
-│              Database                   │
-│         (Microsoft SQL Server)         │
-└─────────────────────────────────────────┘
-```
-
-### Design Patterns Used
-
-- **Repository Pattern**: Abstracts data access logic
-- **Unit of Work Pattern**: Manages database transactions
-- **Dependency Injection**: Promotes loose coupling
-- **Service Layer Pattern**: Encapsulates business logic
-
-## 🛠️ Technology Stack
-
-### Backend
-- **.NET 8**: Modern, cross-platform framework
-- **ASP.NET Core Web API**: RESTful API development
-- **Entity Framework Core**: Object-relational mapping
-- **Microsoft SQL Server**: Relational database
-- **Swagger/OpenAPI**: API documentation
-
-### Frontend
-- **ASP.NET Core Razor Pages**: Server-side rendering
-- **Bootstrap**: Responsive UI framework
-- **jQuery**: Client-side interactions
-- **HttpClient**: API communication (replacing traditional AJAX)
-
-### Development Tools
-- **Visual Studio 2022**: IDE
-- **SQL Server Management Studio**: Database management
-
-## 🗄️ Database Schema
-
-The application uses a well-structured relational database with the following main entities:
-
-![Database Schema](docs/DAB.png)
-
-### Core Tables
-- **Accounts**: User authentication and profile information
-- **Roles**: User role management (Admin, Customer, etc.)
-- **Categories**: Orchid categorization
-- **Orchids**: Product catalog with pricing and descriptions
-- **Orders**: Customer order information
-- **OrderDetails**: Individual order line items
-
-For detailed database schema and table relationships, refer to the SQL script: [`docs/drawSQL-sqlsrv-export-2025-06-27.sql`](docs/drawSQL-sqlsrv-export-2025-06-27.sql)
-
-## 📁 Project Structure
-
 ```
 OrchidsShop/
-├── OrchidsShop.API/                    # Web API Layer
-│   ├── Controllers/                    # API Controllers
-│   ├── Program.cs                      # Application entry point
-│   └── appsettings.json               # Configuration
-├── OrchidsShop.BLL/                   # Business Logic Layer
-│   └── Services/                      # Application Services
-├── OrchidsShop.DAL/                   # Data Access Layer
-│   ├── Contexts/                      # DbContext & Repository
-│   ├── Entities/                      # Domain Models
-│   └── Repos/                         # Repository Implementations
-├── OrchidsShop.PresentationLayer/     # Frontend (Razor Pages)
-│   ├── Pages/                         # Razor Pages
-│   ├── wwwroot/                       # Static files
-│   └── Program.cs                     # Web app entry point
-└── docs/                              # Documentation
-    ├── DAB.png                        # Database diagram
-    └── drawSQL-sqlsrv-export-2025-06-27.sql  # Database schema
+├── OrchidsShop.API/           # Backend REST API
+├── OrchidsShop.BLL/           # Business Logic Layer
+├── OrchidsShop.DAL/           # Data Access Layer
+└── OrchidsShop.PresentationLayer/  # Frontend Razor Pages
+    ├── Pages/
+    │   ├── Admin/             # 🆕 Admin management pages
+    │   ├── Auth/              # Authentication pages
+    │   ├── Orders/            # Order management
+    │   └── Shared/            # Layout and components
+    ├── Services/              # API integration services
+    └── Models/                # Data models and DTOs
 ```
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
+- .NET 8.0 SDK
+- SQL Server (or SQL Server Express)
+- Visual Studio 2022 or VS Code
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Microsoft SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) (LocalDB or full version)
-- [Visual Studio 2022](https://visualstudio.microsoft.com/) or [Visual Studio Code](https://code.visualstudio.com/)
-
-### Installation
+### Setup Instructions
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd OrchidsShop
+   cd orchid-shop-PRN231SU25
    ```
 
-2. **Set up the database**
-   - Create a new SQL Server database
-   - Run the SQL script from `docs/drawSQL-sqlsrv-export-2025-06-27.sql`
-   - Update connection strings in `appsettings.json` files
+2. **Configure the database**
+   - Update connection strings in `appsettings.json`
+   - Run database migrations (if applicable)
 
-3. **Restore dependencies**
-   ```bash
-   dotnet restore
-   ```
-
-4. **Build the solution**
-   ```bash
-   dotnet build
-   ```
-
-5. **Run the applications**
-   
-   **Backend API:**
+3. **Start the backend API**
    ```bash
    cd OrchidsShop.API
    dotnet run
    ```
-   
-   **Frontend:**
+
+4. **Start the frontend application**
    ```bash
    cd OrchidsShop.PresentationLayer
    dotnet run
    ```
 
-## 📚 API Documentation
+5. **Access the application**
+   - Frontend: http://localhost:5081
+   - Backend API: http://localhost:5077
 
-The API documentation is available through Swagger UI when running the API project:
+### Admin Access
 
-- **Development**: `https://localhost:7xxx/swagger`
-- **API Endpoints**: RESTful endpoints for all major operations
+To access the admin functionality:
 
-### Main API Endpoints
+1. **Login** with admin credentials:
+   - Email: `admin@orchidshop.com`
+   - Password: `Admin123!`
 
-- `GET /api/orchids` - Retrieve all orchids
-- `GET /api/orchids/{id}` - Get specific orchid
-- `POST /api/orchids` - Create new orchid
-- `PUT /api/orchids/{id}` - Update orchid
-- `DELETE /api/orchids/{id}` - Delete orchid
-- `GET /api/categories` - Retrieve categories
-- `POST /api/orders` - Create new order
+2. **Navigate** to `/Admin/Orchids` to access the admin dashboard
 
-## 🔧 Development
+3. **Manage orchids** using the create and edit forms
 
-### Running in Development Mode
+## 📚 Documentation
 
-Both projects are configured for development with hot reload:
+- **[API Integration Guide](OrchidsShop.PresentationLayer/README_API_INTEGRATION.md)** - Complete guide to API services and integration
+- **[Admin Documentation](OrchidsShop.PresentationLayer/README_ADMIN.md)** - Comprehensive admin functionality guide
+- **[API Testing](OrchidsShop.API/OrchidsShop.API.http)** - HTTP client collection for API testing
 
-```bash
-# Terminal 1 - API
-cd OrchidsShop.API
-dotnet watch run
+## 🛠️ Technology Stack
 
-# Terminal 2 - Frontend
-cd OrchidsShop.PresentationLayer
-dotnet watch run
+### Backend
+- **ASP.NET Core 8.0** - Web API framework
+- **Entity Framework Core** - ORM for data access
+- **AutoMapper** - Object mapping
+- **Carter** - Minimal API framework for endpoints
+
+### Frontend
+- **ASP.NET Razor Pages** - Server-side rendering
+- **Bootstrap 5** - CSS framework
+- **jQuery** - JavaScript library
+- **Session Management** - User authentication and authorization
+
+### Architecture Patterns
+- **Repository Pattern** - Data access abstraction
+- **Unit of Work** - Transaction management
+- **Service Layer** - Business logic encapsulation
+- **DTO Pattern** - Data transfer objects
+
+## 🔧 Configuration
+
+### API Base URL
+Configure the API base URL in `OrchidsShop.PresentationLayer/Constants/StringValue.cs`:
+
+```csharp
+public const string BaseUrl = "http://localhost:5077/api/";
 ```
 
-### Configuration
+### Session Configuration
+Session services are configured in `Program.cs`:
 
-Update the following configuration files:
-
-- `OrchidsShop.API/appsettings.Development.json` - API settings
-- `OrchidsShop.PresentationLayer/appsettings.Development.json` - Frontend settings
-
-### Database Migrations
-
-When using Entity Framework Core migrations:
-
-```bash
-# Add migration
-dotnet ef migrations add MigrationName --project OrchidsShop.DAL
-
-# Update database
-dotnet ef database update --project OrchidsShop.API
+```csharp
+services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 ```
+
+## 🎨 UI/UX Features
+
+### Responsive Design
+- Mobile-first approach
+- Bootstrap 5 grid system
+- Touch-friendly interface
+- Cross-browser compatibility
+
+### Modern Interface
+- Gradient headers and modern styling
+- Loading states and animations
+- Real-time form validation
+- Toast notifications for user feedback
+
+### Admin Interface
+- Clean, professional dashboard
+- Statistics cards with icons
+- Search and filtering capabilities
+- Form preview functionality
+
+## 🔒 Security
+
+### Authentication
+- Session-based authentication
+- Role-based access control
+- Secure password handling
+- Session timeout management
+
+### Admin Security
+- Admin-only page access
+- Form validation and sanitization
+- CSRF protection
+- Secure API communication
+
+## 📊 API Integration
+
+The application integrates with a RESTful API that provides:
+
+- **Categories API**: CRUD operations for orchid categories
+- **Orchids API**: Advanced filtering and search for orchids
+- **Orders API**: Order management and status tracking
+- **Accounts API**: User authentication and management
+
+All API calls include:
+- Error handling and retry logic
+- Response caching where appropriate
+- Comprehensive logging
+- Type-safe data models
+
+## 🧪 Testing
+
+### API Testing
+Use the provided HTTP client collection (`OrchidsShop.API.http`) to test all API endpoints.
+
+### Manual Testing
+1. **Customer Flow**: Browse products → Add to cart → Place order
+2. **Admin Flow**: Login → Manage orchids → Create/Edit products
+3. **Authentication**: Test login/logout and session management
+
+## 🚀 Deployment
+
+### Development
+- Use HTTP for local development
+- Configure connection strings for local database
+- Enable detailed logging
+
+### Production
+- Configure HTTPS certificates
+- Update API base URL to production endpoint
+- Set up proper database connection
+- Configure logging for production environment
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 📞 Contact
+## 🆕 Recent Updates
 
-For questions or support, please contact the development team.
+### Admin Functionality (Latest)
+- ✅ Complete admin dashboard with statistics
+- ✅ Create orchid form with validation
+- ✅ Edit orchid form with pre-populated data
+- ✅ Real-time search and filtering
+- ✅ Responsive admin interface
+- ✅ Session-based admin authentication
+
+### API Integration
+- ✅ Dual API response format support
+- ✅ Comprehensive error handling
+- ✅ Pagination with property mapping
+- ✅ Type-safe data models
+- ✅ Real-time connectivity
+
+### UI/UX Improvements
+- ✅ Modern gradient design
+- ✅ Loading states and animations
+- ✅ Form validation and preview
+- ✅ Mobile-responsive layout
+- ✅ User-friendly notifications
+
+## 🔮 Future Enhancements
+
+- **Delete Functionality**: Add orchid deletion with confirmation
+- **Image Upload**: File upload for orchid images
+- **Bulk Operations**: Bulk category assignment and price updates
+- **Advanced Analytics**: Sales analytics and customer insights
+- **Real-time Updates**: SignalR integration for live updates
+- **Enhanced Security**: JWT tokens and two-factor authentication
 
 ---
 
-**Note**: This project is currently in development. Deployment strategies and production configurations are not yet finalized.
+**Built with ❤️ using ASP.NET Core and modern web technologies**
