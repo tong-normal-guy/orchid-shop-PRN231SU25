@@ -62,7 +62,9 @@
                         @{
                             var userEmail = ViewContext.HttpContext.Session.GetString("UserEmail");
                             var userName = ViewContext.HttpContext.Session.GetString("UserName");
+                            var userRole = ViewContext.HttpContext.Session.GetString("UserRole");
                             var isLoggedIn = !string.IsNullOrEmpty(userEmail);
+                            var isAdmin = userRole == "ADMIN";
                         }
 
                         @if (isLoggedIn)
@@ -74,6 +76,17 @@
                                     <i class="bi bi-box-seam me-1"></i>Orders
                                 </a>
                             </li>
+
+                            @if (isAdmin)
+                            {
+                                <!-- Admin Dashboard (for admin users) -->
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Admin" ? "active" : "")" 
+                                       asp-area="" asp-page="/Admin/Index">
+                                        <i class="bi bi-gear me-1"></i>Admin
+                                    </a>
+                                </li>
+                            }
 
                             <!-- User Account Dropdown -->
                             <li class="nav-item dropdown">

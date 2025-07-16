@@ -45,9 +45,20 @@ public class OrchidEndpoint : ICarterModule
                 async (CommandOrchidRequest request, IOrchidService service) =>
                 {
                     var result = await service.CreateOrchidAsync(request);
-                    return result.IsError
-                        ? Results.BadRequest()
-                        : Results.Ok(result);
+                    if (result.IsError)
+                    {
+                        return Results.BadRequest(new
+                        {
+                            success = false,
+                            message = result.Message,
+                            errors = result.Errors
+                        });
+                    }
+                    return Results.Ok(new
+                    {
+                        success = true,
+                        message = result.Message
+                    });
                 })
             .WithDisplayName("Create Orchid")
             .WithDescription("Tạo sản phẩm hoa lan mới với thông tin đầy đủ. Trường bắt buộc: name, price, isNatural, categoryId. " +
@@ -66,9 +77,20 @@ public class OrchidEndpoint : ICarterModule
                 async (CommandOrchidRequest request, IOrchidService service) =>
                 {
                     var result = await service.UpdateOrchidAsync(request);
-                    return result.IsError
-                        ? Results.BadRequest(result)
-                        : Results.Ok(result);
+                    if (result.IsError)
+                    {
+                        return Results.BadRequest(new
+                        {
+                            success = false,
+                            message = result.Message,
+                            errors = result.Errors
+                        });
+                    }
+                    return Results.Ok(new
+                    {
+                        success = true,
+                        message = result.Message
+                    });
                 })
             .WithDisplayName("Update Orchid")
             .WithDescription("Cập nhật thông tin hoa lan hiện có. Bắt buộc có ID trong request body. " +
@@ -87,9 +109,20 @@ public class OrchidEndpoint : ICarterModule
                 async (Guid id, IOrchidService service) =>
                 {
                     var result = await service.DeleteOrchidAsync(id);
-                    return result.IsError
-                        ? Results.BadRequest(result)
-                        : Results.Ok(result);
+                    if (result.IsError)
+                    {
+                        return Results.BadRequest(new
+                        {
+                            success = false,
+                            message = result.Message,
+                            errors = result.Errors
+                        });
+                    }
+                    return Results.Ok(new
+                    {
+                        success = true,
+                        message = result.Message
+                    });
                 })
             .WithDisplayName("Delete Orchid")
             .WithDescription("Xóa hoa lan theo ID. Kiểm tra ràng buộc dữ liệu trước khi xóa (ví dụ: đơn hàng liên quan). " +
