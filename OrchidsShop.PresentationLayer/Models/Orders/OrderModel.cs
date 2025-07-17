@@ -64,4 +64,8 @@ public class OrderQueryModel
     public int PageSize { get; set; } = 10;
     public string? SortColumn { get; set; }
     public string? SortDir { get; set; }
+    /// <summary>
+    /// Use to determine is order manager page of admin or not
+    /// </summary>
+    public bool? IsManagment { get; set; }
 } 

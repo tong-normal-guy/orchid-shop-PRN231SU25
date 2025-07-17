@@ -1,0 +1,286 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.Admin.AccountsModel
+@{
+    ViewData["Title"] = "Admin - Manage Accounts";
+    ViewData["ActivePage"] = "Admin";
+}
+
+@section Styles {
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #8b4f9f 0%, #6d3d7f 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2em;
+    }
+    .admin-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        background: #fafafa;
+    }
+    .btn-admin {
+        background: linear-gradient(45deg, #8b4f9f, #6d3d7f);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .btn-admin:hover {
+        background: linear-gradient(45deg, #6d3d7f, #5a2d6b);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139,79,159,0.12);
+    }
+    .btn-outline-admin {
+        border: 2px solid #8b4f9f;
+        color: #8b4f9f;
+        background: transparent;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .btn-outline-admin:hover {
+        background: #8b4f9f;
+        color: white;
+        transform: translateY(-2px);
+    }
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .table th {
+        background: #8b4f9f;
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 1em 0.75em;
+    }
+    .role-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 500;
+        display: inline-block;
+    }
+    .role-admin { background: #f8d7da; color: #721c24; }
+    .role-staff { background: #d1ecf1; color: #0c5460; }
+    .role-customer { background: #d4edda; color: #155724; }
+    .role-manager { background: #fff3cd; color: #856404; }
+    .modal-header {
+        background: linear-gradient(135deg, #8b4f9f 0%, #6d3d7f 100%);
+        color: white;
+        border-bottom: none;
+    }
+    .modal-footer {
+        border-top: none;
+        padding: 1rem 1.5em;
+    }
+</style>
+}
+
+<div class="admin-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="bi bi-people me-2"></i>Account Management
+                </h1>
+                <p class="mb-0">Manage user accounts and roles</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="/Admin" class="btn btn-outline-light">
+                    <i class="bi bi-house me-2"></i>Back to Dashboard
+                </a>
+                <a href="/Admin/Orchids" class="btn btn-outline-light">
+                    <i class="bi bi-flower1 me-2"></i>Manage Orchids
+                </a>
+                <a href="/Admin/Orders" class="btn btn-outline-light">
+                    <i class="bi bi-box-seam me-2"></i>Manage Orders
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="container">
+        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="container">
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+
+<div class="container">
+    <div class="row">
+        <!-- Statistics Cards -->
+        <div class="col-12 mb-4">
+            <div class="row g-3">
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.TotalAccounts</h4>
+                            <p class="text-muted mb-0">Total Accounts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-shield-check text-danger" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.AdminAccounts</h4>
+                            <p class="text-muted mb-0">Admin Accounts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person-badge text-warning" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.StaffAccounts</h4>
+                            <p class="text-muted mb-0">Staff Accounts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person text-success" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.CustomerAccounts</h4>
+                            <p class="text-muted mb-0">Customer Accounts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Accounts Table -->
+        <div class="col-12">
+            <div class="card admin-card mb-4">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-table me-2"></i>Manage Accounts
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search accounts..." style="min-width: 200px;">
+                            <select class="form-select form-select-sm" id="roleFilter" style="min-width: 150px;">
+                                <option value="">All Roles</option>
+                                @if (Model.Roles != null && Model.Roles.Any())
+                                {
+                                    foreach (var role in Model.Roles)
+                                    {
+                                        <option value="@role">@(role?.Substring(0, 1) + role?.Substring(1).ToLower())</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsTableBody">
+                                @if (Model.Accounts != null && Model.Accounts.Any())
+                                {
+                                    foreach (var account in Model.Accounts)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>@(account.Name ?? "Unknown")</strong>
+                                                    <br /><small class="text-muted">ID: @(account.Id?.ToString().Substring(0, 8).ToUpper())...</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="text-primary">@(account.Email ?? "No email")</span>
+                                            </td>
+                                            <td>
+                                                <span class="role-badge @(account.Role != null ? $"role-{account.Role.ToLower()}" : "role-customer")">
+                                                    <i class="bi @(account.Role?.ToUpper() == "ADMIN" ? "bi-shield-check" : account.Role?.ToUpper() == "STAFF" ? "bi-person-badge" : account.Role?.ToUpper() == "MANAGER" ? "bi-person-gear" : "bi-person") me-1"></i>
+                                                    @(account.Role ?? "CUSTOMER")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <a href="/Admin/EditAccount/@account.Id" class="btn btn-outline-admin btn-sm" title="Edit Account">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4">
+                                            <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                                            <p class="text-muted mt-2 mb-0">No accounts found</p>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        // Search functionality
+        $('#searchInput').on('input', function() {
+            filterAccounts();
+        });
+        // Role filter
+        $('#roleFilter').on('change', function() {
+            filterAccounts();
+        });
+    });
+    function filterAccounts() {
+        const searchTerm = $('#searchInput').val().toLowerCase();
+        const roleFilter = $('#roleFilter').val();
+        $('#accountsTableBody tr').each(function() {
+            const row = $(this);
+            const name = row.find('td:nth-child(1) strong').text().toLowerCase();
+            const email = row.find('td:nth-child(2)').text().toLowerCase();
+            const role = row.find('td:nth-child(3) .role-badge').text().trim();
+            const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
+            const matchesRole = !roleFilter || role === roleFilter;
+            if (matchesSearch && matchesRole) {
+                row.show();
+            } else {
+                row.hide();
+            }
+        });
+    }
+</script>
+} 

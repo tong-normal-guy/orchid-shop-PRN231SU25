@@ -24,6 +24,11 @@ public class QueryOrderRequest : PaginationRequest<Order>
 
     public DateOnly? ToDate { get; set; }
     
+    /// <summary>
+    /// Use to determine is order manager page of admin or not
+    /// </summary>
+    public bool? IsManagment { get; set; }
+    
     public override Expression<Func<Order, bool>> GetExpressions()
     {
         var predicate = PredicateBuilder.New<Order>(true);
@@ -53,7 +58,7 @@ public class QueryOrderRequest : PaginationRequest<Order>
         {
             predicate = predicate.And(x => x.OrderDate >= FromDate.Value && x.OrderDate <= ToDate.Value);
         }
-        
+
         return predicate;
     }
 }

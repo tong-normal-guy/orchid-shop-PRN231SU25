@@ -1,0 +1,415 @@
+@page
+@model OrchidsShop.PresentationLayer.Pages.Admin.OrdersModel
+@{
+    ViewData["Title"] = "Admin - Manage Orders";
+    ViewData["ActivePage"] = "Admin";
+}
+
+@* Add anti-forgery token for AJAX requests *@
+@Html.AntiForgeryToken()
+
+@section Styles {
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #8b4f9f 0%, #6d3d7f 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2em;
+    }
+    .admin-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        background: #fafafa;
+    }
+    .btn-admin {
+        background: linear-gradient(45deg, #8b4f9f, #6d3d7f);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .btn-admin:hover {
+        background: linear-gradient(45deg, #6d3d7f, #5a2d6b);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139,79,159,0.12);
+    }
+    .btn-outline-admin {
+        border: 2px solid #8b4f9f;
+        color: #8b4f9f;
+        background: transparent;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .btn-outline-admin:hover {
+        background: #8b4f9f;
+        color: white;
+        transform: translateY(-2px);
+    }
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .table th {
+        background: #8b4f9f;
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 1em 0.75em;
+    }
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 500;
+        display: inline-block;
+    }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-paid { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .modal-header {
+        background: linear-gradient(135deg, #8b4f9f 0%, #6d3d7f 100%);
+        color: white;
+        border-bottom: none;
+    }
+    .modal-footer {
+        border-top: none;
+        padding: 1rem 1.5em;
+    }
+</style>
+}
+
+<div class="admin-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="bi bi-box-seam me-2"></i>Order Management
+                </h1>
+                <p class="mb-0">Manage customer orders and update order status</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="/Admin" class="btn btn-outline-light">
+                    <i class="bi bi-house me-2"></i>Back to Dashboard
+                </a>
+                <a href="/Admin/Orchids" class="btn btn-outline-light">
+                    <i class="bi bi-flower1 me-2"></i>Manage Orchids
+                </a>
+                <a href="/Admin/Accounts" class="btn btn-outline-light">
+                    <i class="bi bi-people me-2"></i>Manage Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="container">
+        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="container">
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+
+<div class="container">
+    <div class="row">
+        <!-- Statistics Cards -->
+        <div class="col-12 mb-4">
+            <div class="row g-3">
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-box-seam text-primary" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.TotalOrders</h4>
+                            <p class="text-muted mb-0">Total Orders</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.PendingOrders</h4>
+                            <p class="text-muted mb-0">Pending Orders</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.PaidOrders</h4>
+                            <p class="text-muted mb-0">Paid Orders</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-x-circle text-danger" style="font-size: 2rem;"></i>
+                            <h4 class="mt-2 mb-1">@Model.CancelledOrders</h4>
+                            <p class="text-muted mb-0">Cancelled Orders</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Orders Table -->
+        <div class="col-12">
+            <div class="card admin-card mb-4">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-table me-2"></i>Manage Orders
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search orders..." style="min-width: 200px;">
+                            <select class="form-select form-select-sm" id="statusFilter" style="min-width: 150px;">
+                                <option value="">All Status</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="PAID">Paid</option>
+                                <option value="CANCELLED">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Order Date</th>
+                                    <th>Total Amount</th>
+                                    <th>Status</th>
+                                    <th>Items</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                @if (Model.Orders != null && Model.Orders.Any())
+                                {
+                                    foreach (var order in Model.Orders)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@(order.Id?.ToString().Substring(0, 8).ToUpper())...</strong>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>@(order.Account?.Name ?? "Unknown")</strong>
+                                                    <br /><small class="text-muted">@(order.Account?.Email ?? "No email")</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @(order.OrderDate?.ToString("MMM dd, yyyy") ?? "N/A")
+                                            </td>
+                                            <td>
+                                                <strong class="text-success">$@(order.TotalAmount?.ToString("F2") ?? "0.00")</strong>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge status-@(order.Status?.ToLower() ?? "pending")">
+                                                    <i class="bi @(order.Status == "PAID" ? "bi-check-circle" : order.Status == "CANCELLED" ? "bi-x-circle" : "bi-clock") me-1"></i>
+                                                    @(order.Status ?? "PENDING")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    @(order.OrderDetails?.Count() ?? 0) item@(order.OrderDetails?.Count() == 1 ? "" : "s")
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-outline-admin btn-sm" onclick="showUpdateStatusModal('@order.Id', '@order.Status')" title="Update Status">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <a href="/Admin/OrderDetails/@order.Id" class="btn btn-outline-info btn-sm" title="View Details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                                            <p class="text-muted mt-2 mb-0">No orders found</p>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Order Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateStatusModalLabel">
+                    <i class="bi bi-pencil me-2"></i>Update Order Status
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="updateStatusForm">
+                <div class="modal-body">
+                    <input type="hidden" id="orderId" name="orderId" />
+                    <div class="mb-3">
+                        <label for="orderStatus" class="form-label">Order Status</label>
+                        <select class="form-select" id="orderStatus" name="status" required>
+                            <option value="PENDING">Pending</option>
+                            <option value="PAID">Paid</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin">
+                        <i class="bi bi-check-circle me-2"></i>Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        // Search functionality
+        $('#searchInput').on('input', function() {
+            filterOrders();
+        });
+        // Status filter
+        $('#statusFilter').on('change', function() {
+            filterOrders();
+        });
+        // Update status form submission
+        $('#updateStatusForm').on('submit', function(e) {
+            e.preventDefault();
+            updateOrderStatusSubmit();
+        });
+    });
+    function filterOrders() {
+        const searchTerm = $('#searchInput').val().toLowerCase();
+        const statusFilter = $('#statusFilter').val();
+        $('#ordersTableBody tr').each(function() {
+            const row = $(this);
+            const customerName = row.find('td:nth-child(2) strong').text().toLowerCase();
+            const customerEmail = row.find('td:nth-child(2) small').text().toLowerCase();
+            const status = row.find('td:nth-child(5) .status-badge').text().trim();
+            const matchesSearch = customerName.includes(searchTerm) || customerEmail.includes(searchTerm);
+            const matchesStatus = !statusFilter || status === statusFilter;
+            if (matchesSearch && matchesStatus) {
+                row.show();
+            } else {
+                row.hide();
+            }
+        });
+    }
+    function showUpdateStatusModal(orderId, currentStatus) {
+        $('#orderId').val(orderId);
+        $('#orderStatus').val(currentStatus);
+        $('#updateStatusModal').modal('show');
+    }
+    function updateOrderStatusSubmit() {
+        const orderId = $('#orderId').val();
+        const status = $('#orderStatus').val();
+        
+        if (!orderId || !status) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = $('#updateStatusForm button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
+        submitBtn.prop('disabled', true);
+        
+        // Make API call to update order status
+        fetch('/Admin/Orders?handler=UpdateStatus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            body: `orderId=${encodeURIComponent(orderId)}&status=${encodeURIComponent(status)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            $('#updateStatusModal').modal('hide');
+            
+            if (data.success) {
+                // Show success message
+                showAlert('success', data.message || 'Order status updated successfully!');
+                // Reload the page to reflect changes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                // Show error message
+                showAlert('danger', data.message || 'Failed to update order status.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'An error occurred while updating the order status.');
+        })
+        .finally(() => {
+            // Reset button state
+            submitBtn.html(originalText);
+            submitBtn.prop('disabled', false);
+        });
+    }
+    
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show mt-3" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        // Remove any existing alerts
+        $('.alert').remove();
+        
+        // Add new alert at the top of the container
+        $('.container').prepend(alertHtml);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut();
+        }, 5000);
+    }
+</script>
+} 

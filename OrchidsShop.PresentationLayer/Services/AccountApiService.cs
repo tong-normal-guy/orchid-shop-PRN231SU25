@@ -58,7 +58,7 @@ public class AccountApiService
     public async Task<ApiResponse<List<AccountModel>>?> GetAccountByIdAsync(Guid id)
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/{id}";
-        return await _apiHelper.GetSingleAsync<AccountModel>(url);
+        return await _apiHelper.GetArrayAsync<AccountModel>(url);
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public class AccountApiService
     public async Task<ApiResponse<List<AccountModel>>?> GetCurrentProfileAsync()
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/profile";
-        return await _apiHelper.GetSingleAsync<AccountModel>(url);
+        return await _apiHelper.GetArrayAsync<AccountModel>(url);
     }
 
     /// <summary>
@@ -78,7 +78,29 @@ public class AccountApiService
     public async Task<ApiResponse<List<string>>?> GetRolesAsync()
     {
         var url = $"{StringValue.BaseUrl}{AccountEndpoint}/roles";
-        return await _apiHelper.GetAsync<string>(url);
+        var response = await _apiHelper.GetArrayAsync<RoleModel>(url);
+        
+        if (response?.Success == true && response.Data != null)
+        {
+            // Convert RoleModel to string (just the name)
+            var roleNames = response.Data.Select(r => r.Name).ToList();
+            return new ApiResponse<List<string>>
+            {
+                Success = true,
+                Message = response.Message,
+                Data = roleNames,
+                Pagination = response.Pagination,
+                Errors = response.Errors
+            };
+        }
+        
+        return new ApiResponse<List<string>>
+        {
+            Success = response?.Success ?? false,
+            Message = response?.Message ?? "Failed to load roles",
+            Data = new List<string>(),
+            Errors = response?.Errors
+        };
     }
 
     /// <summary>
@@ -180,5 +202,53 @@ public class AccountApiService
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Lấy danh sách tất cả tài khoản
+    /// </summary>
+    /// <param name="queryModel">Tham số truy vấn cho việc lọc và phân trang</param>
+    /// <returns>Danh sách tất cả tài khoản</returns>
+    public async Task<ApiResponse<List<AccountModel>>?> GetAllAccountsAsync(AccountQueryModel? queryModel = null)
+    {
+        var baseUrl = StringValue.BaseUrl + AccountEndpoint;
+        
+        if (queryModel != null)
+        {
+            return await _apiHelper.GetArrayAsync<AccountModel>(baseUrl + "?" + BuildQueryString(queryModel));
+        }
+        
+        return await _apiHelper.GetArrayAsync<AccountModel>(baseUrl);
+    }
+    
+    private string BuildQueryString(AccountQueryModel queryModel)
+    {
+        var queryParams = new List<string>();
+        
+        if (!string.IsNullOrEmpty(queryModel.Search))
+            queryParams.Add($"search={Uri.EscapeDataString(queryModel.Search)}");
+        
+        if (!string.IsNullOrEmpty(queryModel.Roles))
+            queryParams.Add($"roles={Uri.EscapeDataString(queryModel.Roles)}");
+        
+        if (!string.IsNullOrEmpty(queryModel.Email))
+            queryParams.Add($"email={Uri.EscapeDataString(queryModel.Email)}");
+        
+        if (!string.IsNullOrEmpty(queryModel.Ids))
+            queryParams.Add($"ids={Uri.EscapeDataString(queryModel.Ids)}");
+        
+        if (queryModel.PageNumber > 1)
+            queryParams.Add($"pageNumber={queryModel.PageNumber}");
+        
+        if (queryModel.PageSize != 10)
+            queryParams.Add($"pageSize={queryModel.PageSize}");
+        
+        if (!string.IsNullOrEmpty(queryModel.SortColumn))
+            queryParams.Add($"sortColumn={Uri.EscapeDataString(queryModel.SortColumn)}");
+        
+        if (!string.IsNullOrEmpty(queryModel.SortDir))
+            queryParams.Add($"sortDir={Uri.EscapeDataString(queryModel.SortDir)}");
+        
+        return string.Join("&", queryParams);
     }
 } 
