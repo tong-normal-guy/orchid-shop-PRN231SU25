@@ -136,7 +136,7 @@ namespace OrchidsShop.API.Controllers
                 });
             }
 
-            var result = await _service.GetByIdAsync(userId);
+            var result = await _service.GetCurrentProfileAsync(userId);
             return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
         }
 
@@ -152,7 +152,7 @@ namespace OrchidsShop.API.Controllers
         )]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetCurrentProfileAsync(id);
             return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
         }
 
@@ -189,6 +189,19 @@ namespace OrchidsShop.API.Controllers
         public async Task<IActionResult> CreateRole([FromBody] CommandAccountRequest request)
         {
             var result = await _service.CreateRoleAsync(request);
+            return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
+        }
+
+        [HttpGet]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách tài khoản",
+            Description = "Lấy danh sách tài khoản từ hệ thống." +
+                         "\n\n**Trả về:** Danh sách tài khoản (OperationResult<List<AccountResponse>>)",
+            Tags = new[] { Tags }
+        )]
+        public async Task<IActionResult> GetAllAccounts([FromQuery] QueryAccountRequest request)
+        {
+            var result = await _service.GetAllAccountsAsync(request);
             return result.IsError ? BadRequest(result.Message) : Ok(result.Payload);
         }
     }

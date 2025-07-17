@@ -184,6 +184,89 @@ public class ApiHelper
             }
         }
 
+        // GET request for APIs that return arrays directly (Accounts API)
+        public async Task<ApiResponse<List<TData>>?> GetArrayAsync<TData>(string url)
+        {
+            try
+            {
+                AddAuthorizationHeader();
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    return new ApiResponse<List<TData>>
+                    {
+                        Success = false,
+                        Message = errorMessage,
+                        Errors = new List<string> { errorMessage }
+                    };
+                }
+
+                var responseData = await response.Content.ReadAsStringAsync();
+                
+                // Try to deserialize as BLL Operation Result format first (Accounts API)
+                try
+                {
+                    var bllResponse = JsonSerializer.Deserialize<BllOperationResponse<List<TData>>>(responseData, _jsonOptions);
+                    
+                    if (bllResponse != null)
+                    {
+                        return new ApiResponse<List<TData>>
+                        {
+                            Success = !bllResponse.IsError,
+                            Message = bllResponse.Message,
+                            Data = bllResponse.Payload,
+                            Pagination = bllResponse.MetaData != null ? new PaginationModel
+                            {
+                                PageIndex = bllResponse.MetaData.PageIndex,
+                                PageSize = bllResponse.MetaData.PageSize,
+                                TotalItemsCount = bllResponse.MetaData.TotalItemsCount,
+                                TotalPagesCount = bllResponse.MetaData.TotalPagesCount
+                            } : null,
+                            Errors = bllResponse.Errors?.Select(e => e.ToString()).ToList()
+                        };
+                    }
+                }
+                catch
+                {
+                    // If BLL format fails, try direct array format
+                }
+                
+                // Fallback: Try to deserialize as direct array
+                var arrayData = JsonSerializer.Deserialize<List<TData>>(responseData, _jsonOptions);
+                
+                if (arrayData == null)
+                {
+                    return new ApiResponse<List<TData>>
+                    {
+                        Success = false,
+                        Message = "Failed to parse response",
+                        Errors = new List<string> { "Failed to parse response" }
+                    };
+                }
+
+                // Return array data directly
+                return new ApiResponse<List<TData>>
+                {
+                    Success = true,
+                    Message = "Data retrieved successfully",
+                    Data = arrayData,
+                    Pagination = null,
+                    Errors = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<TData>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = new List<string> { ex.Message }
+                };
+            }
+        }
+
         // GET request with query parameters (Categories format)
         public async Task<ApiResponse<List<TData>>?> GetWithQueryAsync<TData>(string baseUrl, object queryParams)
         {

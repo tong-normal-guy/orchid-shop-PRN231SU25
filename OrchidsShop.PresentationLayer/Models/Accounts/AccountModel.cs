@@ -14,6 +14,15 @@ public class AccountModel
 }
 
 /// <summary>
+/// Role response model for API responses
+/// </summary>
+public class RoleModel
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Account request model for creating/updating accounts
 /// </summary>
 public class AccountRequestModel
@@ -72,4 +81,22 @@ public class RegisterRequestModel
     [Required(ErrorMessage = "Please select an account type")]
     [Display(Name = "Account Type")]
     public string? Role { get; set; }
+}
+
+/// <summary>
+/// Account query model for filtering and pagination
+/// </summary>
+public class AccountQueryModel
+{
+    public string? Search { get; set; }
+    public string? Roles { get; set; }
+    public string? Email { get; set; }
+    /// <summary>
+    /// Comma-separated list of account IDs for filtering
+    /// </summary>
+    public string? Ids { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public string? SortColumn { get; set; }
+    public string? SortDir { get; set; }
 } 

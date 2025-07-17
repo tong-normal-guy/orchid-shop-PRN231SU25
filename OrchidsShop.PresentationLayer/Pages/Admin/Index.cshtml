@@ -5,21 +5,183 @@
     ViewData["ActivePage"] = "Admin";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <h1 class="mb-4">
-                <i class="bi bi-gear me-2"></i>Admin Dashboard
-            </h1>
-            <p class="lead mb-4">Welcome to the Orchid Shop administration panel.</p>
-            
-            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                <a href="/Admin/Orchids" class="btn btn-primary btn-lg px-4 gap-3">
-                    <i class="bi bi-flower1 me-2"></i>Manage Orchids
-                </a>
-                <a href="/" class="btn btn-outline-secondary btn-lg px-4">
+@section Styles {
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #8b4f9f 0%, #6d3d7f 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+    .admin-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        background: #fafafa;
+        transition: all 0.3s ease;
+    }
+    .admin-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .btn-admin {
+        background: linear-gradient(45deg, #8b4f9f, #6d3d7f);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-admin:hover {
+        background: linear-gradient(45deg, #6d3d7f, #5a2d6b);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139,79,159,0.12);
+    }
+    .btn-outline-admin {
+        border: 2px solid #8b4f9f;
+        color: #8b4f9f;
+        background: transparent;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-outline-admin:hover {
+        background: #8b4f9f;
+        color: white;
+        transform: translateY(-2px);
+    }
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+</style>
+}
+
+<div class="admin-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="bi bi-gear me-2"></i>Admin Dashboard
+                </h1>
+                <p class="mb-0">Welcome to the Orchid Shop administration panel</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="/" class="btn btn-outline-light">
                     <i class="bi bi-house me-2"></i>Back to Shop
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Welcome Message -->
+            <div class="text-center mb-5">
+                <h2 class="mb-3">Choose a Management Section</h2>
+                <p class="lead text-muted">Select the area you want to manage</p>
+            </div>
+            
+            <!-- Management Cards -->
+            <div class="row g-4">              <!-- Orchids Management -->
+                <div class="col-md-4">
+                    <div class="card admin-card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon text-primary">
+                                <i class="bi bi-flower1"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Orchid Management</h4>
+                            <p class="card-text text-muted mb-4">
+                                Manage your orchid inventory, add new orchids, edit existing ones, and organize categories.
+                            </p>
+                            <a href="/Admin/Orchids" class="btn btn-admin w-100">
+                                <i class="bi bi-gear me-2"></i>Manage Orchids
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orders Management -->
+                <div class="col-md-4">
+                    <div class="card admin-card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon text-success">
+                                <i class="bi bi-box-seam"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Order Management</h4>
+                            <p class="card-text text-muted mb-4">
+                                View and manage customer orders, update order status, and track order history.
+                            </p>
+                            <a href="/Admin/Orders" class="btn btn-admin w-100">
+                                <i class="bi bi-list-check me-2"></i>Manage Orders
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Accounts Management -->
+                <div class="col-md-4">
+                    <div class="card admin-card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon text-info">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <h4 class="card-title mb-3">Account Management</h4>
+                            <p class="card-text text-muted mb-4">
+                                Manage user accounts, view customer information, and handle user roles.
+                            </p>
+                            <a href="/Admin/Accounts" class="btn btn-admin w-100">
+                                <i class="bi bi-person-gear me-2"></i>Manage Accounts
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="card admin-card">
+                        <div class="card-header bg-white border-0">
+                            <h5 class="mb-0">
+                                <i class="bi bi-lightning me-2"></i>Quick Actions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3 col-sm-6">
+                                    <a href="/Admin/CreateOrchid" class="btn btn-outline-admin w-100">
+                                        <i class="bi bi-plus-circle me-2"></i>Add New Orchid
+                                    </a>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <a href="/Admin/Orchids" class="btn btn-outline-admin w-100">
+                                        <i class="bi bi-eye me-2"></i>View All Orchids
+                                    </a>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <a href="/Admin/Orders" class="btn btn-outline-admin w-100">
+                                        <i class="bi bi-clock me-2"></i>Pending Orders
+                                    </a>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <a href="/Admin/Accounts" class="btn btn-outline-admin w-100">
+                                        <i class="bi bi-person-plus me-2"></i>User Management
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

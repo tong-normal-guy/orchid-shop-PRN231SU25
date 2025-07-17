@@ -8,7 +8,12 @@ The Presentation Layer provides a complete set of API services and models that m
 
 **✅ All API integrations have been tested and verified working with real backend endpoints.**
 
-**🆕 NEW: Admin functionality with full CRUD operations for orchids management.**
+**🆕 NEW: Admin functionality with full CRUD operations for orchids, orders, and accounts management.**
+
+**🔧 FIXED: Account page JSON deserialization issue resolved.**
+
+## 🎥 Demo Video
+**Watch the API integration in action:** [OrchidsShop Demo](https://youtu.be/-Gb_q9g5eVs)
 
 ## Architecture
 
@@ -29,6 +34,8 @@ OrchidsShop.PresentationLayer
 ├── Pages/
 │   ├── Admin/            # 🆕 Admin management pages
 │   │   ├── Orchids.cshtml          # Admin dashboard with orchid list
+│   │   ├── Orders.cshtml           # Order management with status updates
+│   │   ├── Accounts.cshtml         # Account management
 │   │   ├── CreateOrchid.cshtml     # Create new orchid form
 │   │   └── EditOrchid.cshtml       # Edit existing orchid form
 │   └── Examples/
@@ -101,12 +108,23 @@ if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
    - Statistics overview (total orchids, categories, orders, customers)
    - Quick actions for each orchid (edit, view details)
 
-2. **Create Orchid** (`/Admin/CreateOrchid`)
+2. **Order Management** (`/Admin/Orders`)
+   - View all customer orders with filtering
+   - Update order status (Pending, Processing, Shipped, Delivered, Cancelled)
+   - Order statistics and management tools
+   - Real-time status updates via AJAX
+
+3. **Account Management** (`/Admin/Accounts`)
+   - View and manage user accounts
+   - Role-based access control
+   - User statistics and management
+
+4. **Create Orchid** (`/Admin/CreateOrchid`)
    - Form to create new orchids
    - Real-time preview and validation
    - Category selection dropdown
 
-3. **Edit Orchid** (`/Admin/EditOrchid/{id}`)
+5. **Edit Orchid** (`/Admin/EditOrchid/{id}`)
    - Pre-populated form for editing existing orchids
    - Form validation and error handling
    - Preview of current orchid information
@@ -118,6 +136,51 @@ if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
 - **Search & Filter**: Filter orchids by name and category
 - **Statistics Dashboard**: Overview of system metrics
 - **User-friendly Interface**: Modern UI with loading states and notifications
+- **Order Status Management**: Update order status with AJAX calls
+- **Account Management**: View and manage user accounts
+
+## 🔧 Recent API Fixes
+
+### Account Page JSON Deserialization Issue
+
+**Problem**: The account page was failing with JSON deserialization errors when trying to view user profiles.
+
+**Root Cause**: The API was returning `OperationResult<List<QueryAccountResponse>>` objects, but the frontend was trying to deserialize them as direct arrays.
+
+**Solution**: 
+1. **Updated AccountService** to return lists for all read operations (following OrchidShop pattern)
+2. **Fixed ApiHelper.GetArrayAsync()** to handle BLL Operation Result format
+3. **Added proper error handling** and fallback mechanisms
+
+**Code Changes**:
+```csharp
+// New method in AccountService
+public async Task<OperationResult<List<QueryAccountResponse>>> GetCurrentProfileAsync(Guid id)
+{
+    // Returns account data wrapped in a list
+    var response = _mapper.Map<QueryAccountResponse>(account);
+    var accountList = new List<QueryAccountResponse> { response };
+    return OperationResult<List<QueryAccountResponse>>.Success(accountList, StatusCode.Ok, "Account retrieved successfully.");
+}
+
+// Fixed ApiHelper.GetArrayAsync method
+public async Task<ApiResponse<List<TData>>?> GetArrayAsync<TData>(string url)
+{
+    // Try BLL format first, then fallback to direct array
+    var bllResponse = JsonSerializer.Deserialize<BllOperationResponse<List<TData>>>(responseData, _jsonOptions);
+    if (bllResponse != null)
+    {
+        return new ApiResponse<List<TData>>
+        {
+            Success = !bllResponse.IsError,
+            Message = bllResponse.Message,
+            Data = bllResponse.Payload,
+            // ... handle pagination and errors
+        };
+    }
+    // Fallback to direct array format
+}
+```
 
 ## API Response Structure
 
@@ -249,7 +312,7 @@ public class OrchidsModel : PageModel
             SortColumn = "Name",
             SortDir = "Asc"
         });
-        
+
         if (response?.Success == true && response.Data != null)
         {
             Orchids = response.Data;
@@ -258,618 +321,407 @@ public class OrchidsModel : PageModel
 }
 ```
 
-### 🆕 Create Orchid
+### 🆕 Admin Order Management
 
 ```csharp
-// Create orchid page model
-public class CreateOrchidModel : PageModel
+// Admin order management example
+public class OrdersModel : PageModel
 {
-    [BindProperty]
-    public OrchidRequestModel Orchid { get; set; } = new();
+    private readonly OrderApiService _orderService;
     
-    public async Task<IActionResult> OnPostAsync()
+    public List<OrderModel> Orders { get; set; } = new();
+    
+    public async Task<IActionResult> OnGetAsync()
     {
-        if (!ModelState.IsValid)
+        // Check admin privileges
+        var userRole = HttpContext.Session.GetString("UserRole");
+        if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
         {
-            return Page();
+            TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+            return RedirectToPage("/Auth/Login");
         }
         
-        var response = await _orchidService.CreateOrchidAsync(Orchid);
-        
-        if (response?.Success == true)
-        {
-            TempData["SuccessMessage"] = "Orchid created successfully!";
-            return RedirectToPage("/Admin/Orchids");
-        }
-        else
-        {
-            TempData["ErrorMessage"] = response?.Message ?? "Failed to create orchid.";
-            return Page();
-        }
+        await LoadOrdersAsync();
+        return Page();
     }
-}
-```
-
-### 🆕 Edit Orchid
-
-```csharp
-// Edit orchid page model
-public class EditOrchidModel : PageModel
-{
-    [BindProperty]
-    public OrchidRequestModel Orchid { get; set; } = new();
     
-    public async Task<IActionResult> OnGetAsync(Guid id)
+    private async Task LoadOrdersAsync()
     {
-        // Load orchid data
-        var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel
+        var response = await _orderService.GetOrdersForAdminAsync(new OrderQueryModel
         {
-            Ids = id.ToString(),
-            PageSize = 1
+            PageSize = 100, // Get all orders for admin
+            SortColumn = "OrderDate",
+            SortDir = "Desc",
+            IsManagment = true // Set to true for admin management
         });
-        
-        if (response?.Success == true && response.Data?.Any() == true)
-        {
-            var orchidData = response.Data.First();
-            
-            // Map to request model for form binding
-            Orchid = new OrchidRequestModel
-            {
-                Id = orchidData.Id,
-                Name = orchidData.Name,
-                Description = orchidData.Description,
-                Url = orchidData.Url,
-                Price = orchidData.Price,
-                IsNatural = orchidData.IsNatural,
-                CategoryId = orchidData.Category?.Id
-            };
-            
-            return Page();
-        }
-        
-        TempData["ErrorMessage"] = "Orchid not found.";
-        return RedirectToPage("/Admin/Orchids");
-    }
-    
-    public async Task<IActionResult> OnPostAsync()
-    {
-        if (!ModelState.IsValid)
-        {
-            return Page();
-        }
-        
-        var response = await _orchidService.UpdateOrchidAsync(Orchid);
-        
-        if (response?.Success == true)
-        {
-            TempData["SuccessMessage"] = "Orchid updated successfully!";
-            return RedirectToPage("/Admin/Orchids");
-        }
-        else
-        {
-            TempData["ErrorMessage"] = response?.Message ?? "Failed to update orchid.";
-            return Page();
-        }
-    }
-}
-```
 
-### Category Operations
-
-```csharp
-public class CategoryController : Controller
-{
-    private readonly CategoryApiService _categoryService;
-    
-    public CategoryController(CategoryApiService categoryService)
-    {
-        _categoryService = categoryService;
-    }
-    
-    // Get all categories for dropdown
-    public async Task<IActionResult> GetCategories()
-    {
-        var response = await _categoryService.GetAllCategoriesForDropdownAsync();
-        
         if (response?.Success == true && response.Data != null)
         {
-            return Json(response.Data);
+            Orders = response.Data;
         }
-        
-        return BadRequest(response?.Message ?? "Failed to get categories");
     }
     
-    // Search categories with pagination
-    public async Task<IActionResult> SearchCategories(string search, int page = 1)
+    // Handle order status updates
+    public async Task<IActionResult> OnPostUpdateStatusAsync()
     {
-        var response = await _categoryService.SearchCategoriesAsync(search, page, 10);
-        
-        return Json(new {
-            success = response?.Success ?? false,
-            data = response?.Data ?? new List<CategoryModel>(),
-            pagination = response?.Pagination,
-            message = response?.Message
-        });
+        // Implementation for updating order status
+        // Returns JSON response for AJAX calls
     }
+}
+```
+
+### 🔧 Fixed Account Profile Management
+
+```csharp
+// Account profile management (now working correctly)
+public class AccountPageModel : PageModel
+{
+    private readonly AccountApiService _accountApiService;
     
-    // Create new category
-    [HttpPost]
-    public async Task<IActionResult> CreateCategory([FromBody] CategoryRequestModel model)
+    public AccountModel? Account { get; set; }
+    public bool IsLoaded { get; set; } = false;
+    
+    public async Task OnGetAsync()
     {
-        var response = await _categoryService.CreateCategoryAsync(model);
-        
-        if (response?.Success == true)
+        var jwtToken = HttpContext.Session.GetString("JwtToken");
+        if (string.IsNullOrEmpty(jwtToken))
         {
-            return Ok(new { message = response.Message });
+            ErrorMessage = "Please log in to view your account details.";
+            return;
         }
         
-        return BadRequest(new { 
-            message = response?.Message,
-            errors = response?.Errors 
-        });
-    }
-}
-```
-
-### Orchid Operations
-
-```csharp
-// Get orchids for product catalog
-public async Task<IActionResult> GetOrchids(
-    string? search = null,
-    string? category = null,
-    bool? isNatural = null,
-    decimal? minPrice = null,
-    decimal? maxPrice = null,
-    int page = 1,
-    int pageSize = 12)
-{
-    var response = await _orchidService.AdvancedSearchOrchidsAsync(
-        search, category, isNatural, minPrice, maxPrice,
-        page, pageSize, "Name", "Asc");
-    
-    return Json(new {
-        orchids = response?.Data ?? new List<OrchidModel>(),
-        pagination = response?.Pagination,
-        success = response?.Success ?? false
-    });
-}
-
-// Get single orchid details
-public async Task<IActionResult> GetOrchidDetails(Guid id)
-{
-    var response = await _orchidService.GetOrchidByIdAsync(id);
-    
-    if (response?.Success == true && response.Data?.Any() == true)
-    {
-        return Json(response.Data.First());
-    }
-    
-    return NotFound("Orchid not found");
-}
-
-// Create new orchid
-[HttpPost]
-public async Task<IActionResult> CreateOrchid([FromBody] OrchidRequestModel model)
-{
-    var response = await _orchidService.CreateOrchidAsync(model);
-    
-    return Json(new {
-        success = response?.Success ?? false,
-        message = response?.Message,
-        errors = response?.Errors
-    });
-}
-```
-
-### Account Operations
-
-```csharp
-// User login
-[HttpPost]
-public async Task<IActionResult> Login([FromBody] LoginRequestModel model)
-{
-    var response = await _accountService.LoginAsync(model);
-    
-    if (response?.Success == true)
-    {
-        // Set session or create JWT token
-        HttpContext.Session.SetString("UserEmail", model.Email);
-        return Ok(new { message = "Login successful" });
-    }
-    
-    return BadRequest(new { 
-        message = response?.Message ?? "Login failed",
-        errors = response?.Errors 
-    });
-}
-
-// User registration
-[HttpPost]
-public async Task<IActionResult> Register([FromBody] RegisterRequestModel model)
-{
-    var response = await _accountService.RegisterAsync(model);
-    
-    return Json(new {
-        success = response?.Success ?? false,
-        message = response?.Message,
-        errors = response?.Errors
-    });
-}
-
-// Get user profile
-public async Task<IActionResult> GetProfile(Guid userId)
-{
-    var response = await _accountService.GetAccountByIdAsync(userId);
-    
-    if (response?.Success == true && response.Data?.Any() == true)
-    {
-        return Json(response.Data.First());
-    }
-    
-    return NotFound("User not found");
-}
-```
-
-### Order Operations
-
-```csharp
-// Create order from shopping cart
-[HttpPost]
-public async Task<IActionResult> CreateOrder([FromBody] CreateOrderViewModel model)
-{
-    var orderDetails = model.CartItems.Select(item => new OrderDetailRequestModel
-    {
-        OrchidId = item.OrchidId,
-        Quantity = item.Quantity
-    }).ToList();
-    
-    var response = await _orderService.CreateOrderFromCartAsync(model.CustomerId, orderDetails);
-    
-    return Json(new {
-        success = response?.Success ?? false,
-        message = response?.Message,
-        errors = response?.Errors
-    });
-}
-
-// Get customer order history
-public async Task<IActionResult> GetOrderHistory(Guid customerId, int page = 1)
-{
-    var response = await _orderService.GetCustomerOrderHistoryAsync(customerId, page, 10);
-    
-    return Json(new {
-        orders = response?.Data ?? new List<OrderModel>(),
-        pagination = response?.Pagination,
-        success = response?.Success ?? false
-    });
-}
-
-// Update order status (admin)
-[HttpPost]
-public async Task<IActionResult> UpdateOrderStatus(Guid orderId, string status)
-{
-    var response = await _orderService.UpdateOrderStatusAsync(orderId, status);
-    
-    return Json(new {
-        success = response?.Success ?? false,
-        message = response?.Message
-    });
-}
-```
-
-## Error Handling Best Practices
-
-### 1. Always Check Response
-```csharp
-var response = await _orchidService.GetOrchidsAsync();
-
-// Check for null response
-if (response == null)
-{
-    // Handle network/connection error
-    _logger.LogError("API response was null - possible network issue");
-    return StatusCode(500, "Connection error");
-}
-
-// Check success flag (automatically set for successful HTTP responses)
-if (!response.Success)
-{
-    // Handle API error
-    _logger.LogWarning("API returned error. Message: {Message}, Errors: {Errors}", 
-        response.Message, string.Join(", ", response.Errors ?? new List<string>()));
-    return BadRequest(new { 
-        message = response.Message,
-        errors = response.Errors 
-    });
-}
-
-// Check data availability
-if (response.Data == null || !response.Data.Any())
-{
-    // Handle empty result (this is normal, not an error)
-    _logger.LogInformation("No data returned from API - empty result set");
-    return Ok(new { message = "No data found", data = new List<OrchidModel>() });
-}
-
-// Process successful response
-_logger.LogInformation("Successfully retrieved {Count} items from API", response.Data.Count);
-return Ok(response.Data);
-```
-
-### 2. Exception Handling
-```csharp
-try
-{
-    var response = await _categoryService.GetCategoriesAsync();
-    // Process response...
-}
-catch (HttpRequestException ex)
-{
-    // Handle HTTP-specific errors
-    _logger.LogError(ex, "HTTP error while calling API");
-    return StatusCode(503, "Service unavailable");
-}
-catch (TaskCanceledException ex)
-{
-    // Handle timeout
-    _logger.LogError(ex, "API request timeout");
-    return StatusCode(408, "Request timeout");
-}
-catch (Exception ex)
-{
-    // Handle general errors
-    _logger.LogError(ex, "Unexpected error");
-    return StatusCode(500, "Internal server error");
-}
-```
-
-## Frontend Integration
-
-### JavaScript/jQuery Example
-
-```javascript
-// Get orchids with filtering
-async function loadOrchids(page = 1, filters = {}) {
-    try {
-        const params = new URLSearchParams({
-            page: page,
-            pageSize: 12,
-            ...filters
-        });
+        var response = await _accountApiService.GetCurrentProfileAsync();
         
-        const response = await fetch(`/Orchids/GetOrchids?${params}`);
-        const result = await response.json();
-        
-        if (result.success) {
-            displayOrchids(result.orchids);
-            updatePagination(result.pagination);
-        } else {
-            showError(result.message || 'Failed to load orchids');
+        if (response?.Success == true && response.Data != null && response.Data.Count > 0)
+        {
+            Account = response.Data.FirstOrDefault();
+            IsLoaded = true;
         }
-    } catch (error) {
-        showError('Network error: ' + error.message);
-    }
-}
-
-// Create new orchid
-async function createOrchid(orchidData) {
-    try {
-        const response = await fetch('/Orchids/CreateOrchid', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(orchidData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showSuccess(result.message || 'Orchid created successfully');
-            loadOrchids(); // Refresh list
-        } else {
-            showError(result.message || 'Failed to create orchid');
-            if (result.errors) {
-                result.errors.forEach(error => showError(error));
-            }
+        else
+        {
+            ErrorMessage = response?.Message ?? "Failed to load account details.";
         }
-    } catch (error) {
-        showError('Network error: ' + error.message);
     }
 }
 ```
 
-## Testing the Integration
+### Category Management
 
-### 1. Test API Connectivity
 ```csharp
-[HttpGet]
-public async Task<IActionResult> TestConnection()
-{
-    try
-    {
-        // Test both API formats
-        var categoryResponse = await _categoryService.GetCategoriesAsync();
-        var orchidResponse = await _orchidService.GetOrchidsAsync();
-        
-        return Json(new { 
-            categoriesConnected = categoryResponse?.Success == true,
-            orchidsConnected = orchidResponse?.Success == true,
-            categoryMessage = categoryResponse?.Message,
-            orchidMessage = orchidResponse?.Message,
-            totalCategories = categoryResponse?.Data?.Count ?? 0,
-            totalOrchids = orchidResponse?.Data?.Count ?? 0
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "API connectivity test failed");
-        return Json(new { 
-            connected = false,
-            message = ex.Message 
-        });
-    }
-}
-```
-
-### 2. Known Issues & Solutions
-
-#### Issue: Categories Not Loading (RESOLVED ✅)
-- **Problem**: Categories API doesn't include `Success` field in response
-- **Solution**: `ApiHelper.GetAsync()` now automatically sets `Success = true` for successful HTTP responses
-
-#### Issue: Pagination Property Mismatch (RESOLVED ✅)  
-- **Problem**: API returns `{totalItemsCount, pageIndex, totalPagesCount}` but models expected `{TotalRecords, PageNumber, TotalPages}`
-- **Solution**: Added JSON property name attributes to `PaginationModel` with computed properties for compatibility
-
-#### Issue: HTTP vs HTTPS (RESOLVED ✅)
-- **Problem**: Frontend using HTTPS, backend using HTTP causing connection failures
-- **Solution**: Updated `StringValue.BaseUrl` to use HTTP (`http://localhost:5077/api/`)
-
-#### Issue: Order Sorting Property Mismatch (RESOLVED ✅)
-- **Problem**: Frontend sends `TotalAmount` but backend entity has `TotalAmound` (typo)
-- **Solution**: Property mapping handled in service layer to map `TotalAmount` → `TotalAmound`
-
-#### Issue: Property Name Typo (KNOWN LIMITATION ⚠️)
-- **Problem**: Backend API uses `IsNarutal` (with typo) instead of `IsNatural`  
-- **Solution**: Frontend models maintain the typo to match API exactly
-
-#### Issue: Admin Form Data Binding (RESOLVED ✅)
-- **Problem**: Form binding issues with nested models and property mapping
-- **Solution**: Proper model binding with separate display and request models, explicit property mapping
-
-### 3. Validate Response Structure
-The API services handle both response formats automatically:
-
-- **Categories API**: `{ message, data: [], pagination }` → `ApiResponse<List<T>>`  
-- **Orchids API**: `{ statusCode, message, isError, payload, metaData, errors }` → `ApiResponse<List<T>>`
-- **Endpoints** (POST/PUT/DELETE): `{ message, success, errors?: [] }` → `ApiOperationResponse`
-
-### 4. Check Pagination
-All GET operations support pagination with automatic property mapping:
-```csharp
-var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel 
+// Get categories with pagination
+var response = await _categoryService.GetCategoriesAsync(new CategoryQueryModel
 {
     PageNumber = 1,
     PageSize = 10,
-    SortColumn = "Name",
-    SortDir = "Asc"
+    Search = "Phalaenopsis"
 });
 
-// Access pagination metadata (works for both API formats)
-var totalPages = response?.Pagination?.TotalPages ?? 1;        // Computed property
-var totalRecords = response?.Pagination?.TotalRecords ?? 0;    // Computed property
-var pageNumber = response?.Pagination?.PageNumber ?? 1;        // PageIndex + 1
-var pageSize = response?.Pagination?.PageSize ?? 10;           // Direct mapping
-```
-
-## API Endpoints Reference
-
-### Categories
-- `GET /api/orchid-categories` - Get categories with pagination/filtering
-- `POST /api/orchid-categories` - Create categories (bulk)
-- `PUT /api/orchid-categories/{id}` - Update category
-- `PATCH /api/orchid-categories/{id}` - Partial update category
-- `DELETE /api/orchid-categories/{id}` - Delete category
-
-### Orchids
-- `GET /api/orchids` - Get orchids with advanced filtering
-- `POST /api/orchids` - Create orchid
-- `PUT /api/orchids` - Update orchid
-- `DELETE /api/orchids/{id}` - Delete orchid
-
-### Accounts
-- `POST /api/accounts/login` - User login
-- `POST /api/accounts/register` - User registration
-- `POST /api/accounts` - Create account (admin)
-- `GET /api/accounts/{id}` - Get account by ID
-- `PUT /api/accounts/{id}` - Update account
-- `GET /api/accounts/roles` - Get available roles
-
-### Orders
-- `GET /api/orders` - Get orders with filtering
-- `POST /api/orders` - Create order
-- `PUT /api/orders` - Update order
-- `DELETE /api/orders` - Delete order
-
-For detailed API documentation and testing, refer to `OrchidsShop.API.http` file.
-
-## Recent Updates & Fixes
-
-### ✅ Fixed Issues (Latest Update)
-
-1. **Categories Loading Issue** - Resolved JSON deserialization problems
-2. **Pagination Property Mapping** - Fixed property name mismatches  
-3. **HTTP/HTTPS Configuration** - Corrected URL scheme for local development
-4. **Response Format Handling** - Added support for dual API response formats
-5. **Auto-Success Detection** - Automatic success flag setting for Categories API
-6. **Order Sorting Issue** - Fixed TotalAmount property mapping for order queries
-7. **UI Improvements** - Removed role display from customer information and hidden print/download actions
-8. **🆕 Admin CRUD Operations** - Complete admin functionality with create, read, update operations
-9. **🆕 Form Data Binding** - Fixed model binding issues for admin forms
-10. **🆕 Admin Authentication** - Session-based admin access control
-
-### 🔧 ApiHelper Improvements
-
-The `ApiHelper` class now includes:
-- **Dual Format Support**: `GetAsync()` for Categories, `GetBllAsync()` for Orchids
-- **Auto-Success Setting**: Automatically sets `Success = true` for successful HTTP responses
-- **Property Mapping**: Proper JSON property name handling with `PropertyNamingPolicy = null`
-- **Error Handling**: Comprehensive exception handling with detailed logging
-
-### 📱 Frontend Integration Status
-
-**✅ Fully Working Features:**
-- Categories dropdown population
-- Orchid grid display with pagination
-- Search and filtering functionality  
-- Responsive design across all devices
-- Real-time API connectivity
-- Error message display
-- Loading states and feedback
-- Order management with status tracking
-- Customer order history with filtering and sorting
-- **🆕 Admin Dashboard** with statistics and orchid management
-- **🆕 Create Orchid** form with validation and preview
-- **🆕 Edit Orchid** form with pre-populated data
-- **🆕 Admin Authentication** and access control
-
-**🎨 Recent UI Improvements:**
-- Removed role display from customer information for privacy
-- Hidden print and download actions (reserved for future implementation)
-- Enhanced order details page with timeline visualization
-- Improved order status badges and action buttons
-- **🆕 Modern admin interface** with gradient headers and responsive design
-- **🆕 Real-time form validation** and preview functionality
-- **🆕 Loading states** and user feedback for all operations
-
-### 🚀 Usage in Production
-
-The current implementation is production-ready for local development. For deployment:
-
-1. **Update BaseUrl** in `StringValue.cs` to point to production API
-2. **Configure HTTPS** certificates for production environment  
-3. **Environment Variables** for different deployment stages
-4. **Logging Configuration** for production monitoring
-
-```csharp
-// Example production configuration
-public static class StringValue 
+if (response?.Success == true && response.Data != null)
 {
-    public static string BaseUrl => Environment.GetEnvironmentVariable("API_BASE_URL") 
-                                   ?? "https://api.orchidshop.com/api/";
+    var categories = response.Data;
+    var totalPages = response.Pagination?.TotalPages ?? 1;
 }
 ```
 
-### 📋 Future Considerations
+### Orchid Management
 
-- Consider implementing retry logic for failed API calls
-- Add response caching for frequently accessed data
-- Implement request timeout configuration
-- Add API health check endpoints
-- Consider using HttpClientFactory for better connection management
-- **🆕 Admin Features**: Add delete functionality for orchids (currently disabled)
-- **🆕 Admin Features**: Add bulk operations for orchids
-- **🆕 Admin Features**: Add image upload functionality
-- **🆕 Admin Features**: Add user management interface 
+```csharp
+// Get orchids with advanced filtering
+var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel
+{
+    PageNumber = 1,
+    PageSize = 20,
+    Search = "Beautiful",
+    CategoryId = categoryId,
+    MinPrice = 10.0m,
+    MaxPrice = 100.0m,
+    IsNatural = true,
+    SortColumn = "Price",
+    SortDir = "Asc"
+});
+
+if (response?.Success == true && response.Data != null)
+{
+    var orchids = response.Data;
+    var totalRecords = response.Pagination?.TotalRecords ?? 0;
+}
+```
+
+### Order Management
+
+```csharp
+// Get orders for customer
+var response = await _orderService.GetOrdersAsync(new OrderQueryModel
+{
+    PageNumber = 1,
+    PageSize = 10,
+    AccountId = currentUserId,
+    SortColumn = "OrderDate",
+    SortDir = "Desc"
+});
+
+if (response?.Success == true && response.Data != null)
+{
+    var orders = response.Data;
+}
+```
+
+### Account Management
+
+```csharp
+// Login user
+var loginResponse = await _accountService.LoginAsync(new LoginRequestModel
+{
+    Email = "user@example.com",
+    Password = "password123"
+});
+
+if (loginResponse?.Success == true && loginResponse.Data != null)
+{
+    // Store JWT token in session
+    HttpContext.Session.SetString("JwtToken", loginResponse.Data.Token);
+    HttpContext.Session.SetString("UserEmail", loginResponse.Data.Email);
+    HttpContext.Session.SetString("UserRole", loginResponse.Data.Role);
+}
+```
+
+## Error Handling
+
+### Comprehensive Error Handling
+
+All API services include comprehensive error handling:
+
+```csharp
+try
+{
+    var response = await _service.GetDataAsync();
+    
+    if (response?.Success == true && response.Data != null)
+    {
+        // Handle success
+        return response.Data;
+    }
+    else
+    {
+        // Handle API errors
+        _logger.LogWarning("API returned error: {Message}", response?.Message);
+        return new List<T>();
+    }
+}
+catch (Exception ex)
+{
+    // Handle network/deserialization errors
+    _logger.LogError(ex, "Error calling API");
+    return new List<T>();
+}
+```
+
+### HTTP Status Code Handling
+
+The `ApiHelper` automatically handles different HTTP status codes:
+
+```csharp
+if (!response.IsSuccessStatusCode)
+{
+    var errorMessage = await response.Content.ReadAsStringAsync();
+    return new ApiResponse<List<TData>>
+    {
+        Success = false,
+        Message = errorMessage,
+        Errors = new List<string> { errorMessage }
+    };
+}
+```
+
+## Pagination Support
+
+### Automatic Pagination Handling
+
+All list endpoints support pagination with automatic metadata mapping:
+
+```csharp
+// Request with pagination
+var queryModel = new OrchidQueryModel
+{
+    PageNumber = 2,
+    PageSize = 20,
+    SortColumn = "Name",
+    SortDir = "Asc"
+};
+
+var response = await _orchidService.GetOrchidsAsync(queryModel);
+
+// Access pagination metadata
+if (response?.Pagination != null)
+{
+    var currentPage = response.Pagination.PageNumber;
+    var totalPages = response.Pagination.TotalPages;
+    var totalRecords = response.Pagination.TotalRecords;
+    var hasNextPage = currentPage < totalPages;
+    var hasPreviousPage = currentPage > 1;
+}
+```
+
+## Authentication
+
+### JWT Token Management
+
+The API services automatically handle JWT token authentication:
+
+```csharp
+private void AddAuthorizationHeader()
+{
+    var jwtToken = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+    if (!string.IsNullOrEmpty(jwtToken))
+    {
+        _httpClient.DefaultRequestHeaders.Authorization = 
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+    }
+}
+```
+
+### Session Management
+
+User sessions are managed through ASP.NET Core sessions:
+
+```csharp
+// Store user data in session after login
+HttpContext.Session.SetString("JwtToken", loginResponse.Data.Token);
+HttpContext.Session.SetString("UserEmail", loginResponse.Data.Email);
+HttpContext.Session.SetString("UserRole", loginResponse.Data.Role);
+
+// Retrieve user data from session
+var userEmail = HttpContext.Session.GetString("UserEmail");
+var userRole = HttpContext.Session.GetString("UserRole");
+```
+
+## Testing
+
+### Manual Testing
+
+1. **Start both applications**:
+   ```bash
+   # Terminal 1 - Backend API
+   cd OrchidsShop.API
+   dotnet run
+   
+   # Terminal 2 - Frontend
+   cd OrchidsShop.PresentationLayer
+   dotnet run
+   ```
+
+2. **Test customer flow**:
+   - Browse orchids
+   - Add items to cart
+   - Place orders
+   - View order history
+
+3. **Test admin flow**:
+   - Login as admin
+   - Manage orchids
+   - Manage orders
+   - Manage accounts
+
+4. **Test API endpoints**:
+   - Use the provided HTTP client collection
+   - Test all CRUD operations
+   - Verify error handling
+
+### API Testing with HTTP Client
+
+Use the provided HTTP client collection (`OrchidsShop.API.http`) to test all endpoints:
+
+```http
+### Get all orchids
+GET http://localhost:5077/api/orchids?pageNumber=1&pageSize=10
+
+### Get categories
+GET http://localhost:5077/api/categories
+
+### Login user
+POST http://localhost:5077/api/accounts/login
+Content-Type: application/json
+
+{
+  "email": "admin@orchidshop.com",
+  "password": "Admin123!"
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **JSON Deserialization Errors**
+   - **Cause**: API response format mismatch
+   - **Solution**: Use the correct API helper method (`GetAsync`, `GetBllAsync`, `GetArrayAsync`)
+
+2. **Authentication Errors**
+   - **Cause**: Missing or invalid JWT token
+   - **Solution**: Ensure user is logged in and session is active
+
+3. **CORS Errors**
+   - **Cause**: Cross-origin requests blocked
+   - **Solution**: Configure CORS in the API project
+
+4. **Connection Errors**
+   - **Cause**: API not running or wrong URL
+   - **Solution**: Ensure API is running on correct port and URL is configured
+
+### Debug Tips
+
+1. **Check API Response**:
+   ```csharp
+   var responseData = await response.Content.ReadAsStringAsync();
+   _logger.LogInformation("API Response: {Response}", responseData);
+   ```
+
+2. **Verify Configuration**:
+   ```csharp
+   _logger.LogInformation("API Base URL: {BaseUrl}", StringValue.BaseUrl);
+   ```
+
+3. **Check Session Data**:
+   ```csharp
+   var jwtToken = HttpContext.Session.GetString("JwtToken");
+   _logger.LogInformation("JWT Token: {Token}", jwtToken);
+   ```
+
+## Performance Optimization
+
+### Parallel Loading
+
+Load multiple API calls in parallel for better performance:
+
+```csharp
+var tasks = new[]
+{
+    LoadOrchidsAsync(),
+    LoadCategoriesAsync(),
+    LoadStatisticsAsync()
+};
+
+await Task.WhenAll(tasks);
+```
+
+### Caching
+
+Implement response caching for frequently accessed data:
+
+```csharp
+// Cache categories for 5 minutes
+var cacheKey = "categories";
+var categories = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+{
+    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+    var response = await _categoryService.GetCategoriesAsync();
+    return response?.Data ?? new List<CategoryModel>();
+});
+```
+
+## 🎥 Demo Video
+**Watch the API integration in action:** [OrchidsShop Demo](https://youtu.be/-Gb_q9g5eVs)
+
+---
+
+**✅ All API integrations tested and working with real backend endpoints** 

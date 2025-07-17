@@ -1,0 +1,271 @@
+@page "{id:guid}"
+@model OrchidsShop.PresentationLayer.Pages.Admin.EditAccountModel
+@{
+    ViewData["Title"] = "Edit Account";
+    ViewData["ActivePage"] = "Admin";
+    var currentUserEmail = HttpContext.Session.GetString("UserEmail");
+    var isEditingSelf = string.Equals(currentUserEmail, Model.Account.Email, StringComparison.OrdinalIgnoreCase);
+    var roleDropdownDisabled = isEditingSelf ? "disabled" : "";
+}
+
+@section Styles {
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #8b4f9f 0%, #6d3d7f 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2em;
+    }
+    .admin-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        background: #fafafa;
+    }
+    .btn-admin {
+        background: linear-gradient(45deg, #8b4f9f, #6d3d7f);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .btn-admin:hover {
+        background: linear-gradient(45deg, #6d3d7f, #5a2d6b);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139,79,159,0.12);
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #8b4f9f;
+        box-shadow: 0 0 0 0.2rem rgba(139,79,159,0.08);
+    }
+    .role-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 500;
+        display: inline-block;
+    }
+    .role-admin { background: #f8d7da; color: #721c24; }
+    .role-staff { background: #d1ecf1; color: #0c5460; }
+    .role-customer { background: #d4edda; color: #155724; }
+    .role-manager { background: #fff3cd; color: #856404; }
+    .preview-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+</style>
+}
+
+<div class="admin-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="bi bi-person-gear me-2"></i>Edit Account
+                </h1>
+                <p class="mb-0">Update account information and role</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="/Admin/Accounts" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="container">
+        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="container">
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card admin-card mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person me-2"></i>Account Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="editAccountForm">
+                        <input type="hidden" asp-for="Account.Id" />
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Account.Name" class="form-label">Full Name</label>
+                                    <input asp-for="Account.Name" class="form-control" placeholder="Enter full name" />
+                                    <span asp-validation-for="Account.Name" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Account.Email" class="form-label">Email Address</label>
+                                    <input asp-for="Account.Email" type="email" class="form-control" placeholder="Enter email address" />
+                                    <span asp-validation-for="Account.Email" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Account.Role" class="form-label">Role</label>
+                                    <select name="Account.Role" id="roleDropdown" class="form-select" @(isEditingSelf ? "disabled" : "")>
+                                        <option value="">Select Role</option>
+                                        <!-- Roles will be loaded dynamically -->
+                                    </select>
+                                    <span asp-validation-for="Account.Role" class="text-danger"></span>
+                                    @if (isEditingSelf)
+                                    {
+                                        <div class="text-warning small mt-1">You cannot change your own role.</div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Account ID</label>
+                                    <input type="text" class="form-control" value="@Model.Account.Id" readonly />
+                                    <small class="text-muted">This field cannot be changed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <hr class="my-4" />
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Account.Password" class="form-label">New Password</label>
+                                    <input asp-for="Account.Password" type="password" class="form-control" placeholder="Leave blank to keep current password" />
+                                    <span asp-validation-for="Account.Password" class="text-danger"></span>
+                                    <small class="text-muted">Leave blank to keep the current password</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Account.ConfirmPassword" class="form-label">Confirm Password</label>
+                                    <input asp-for="Account.ConfirmPassword" type="password" class="form-control" placeholder="Confirm new password" />
+                                    <span asp-validation-for="Account.ConfirmPassword" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="preview-section">
+                            <h6 class="text-muted mb-3">
+                                <i class="bi bi-eye me-2"></i>Preview
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Name:</strong>
+                                    <div id="previewName" class="text-muted">@Model.Account.Name</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Email:</strong>
+                                    <div id="previewEmail" class="text-muted">@Model.Account.Email</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Role:</strong>
+                                    <div id="previewRole">
+                                        <span class="role-badge @(Model.Account.Role != null ? $"role-{Model.Account.Role.ToLower()}" : "role-customer")">
+                                            @(Model.Account.Role ?? "CUSTOMER")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="/Admin/Accounts" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-admin" id="saveButton">
+                                <i class="bi bi-check-circle me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        // Load roles for dropdown
+        fetchRoles();
+        // Set initial selected value
+        var currentRole = '@Model.Account.Role';
+        $(document).on('rolesLoaded', function() {
+            $('#roleDropdown').val(currentRole);
+        });
+        // Real-time preview updates
+        $('#Account_Name').on('input', function() {
+            $('#previewName').text($(this).val() || 'Not set');
+        });
+        $('#Account_Email').on('input', function() {
+            $('#previewEmail').text($(this).val() || 'Not set');
+        });
+        $('#Account_Role').on('change', function() {
+            const role = $(this).val();
+            const roleText = role || 'CUSTOMER';
+            const roleClass = role ? 'role-' + role.toLowerCase() : 'role-customer';
+            $('#previewRole').html(
+                `<span class="role-badge ${roleClass}">${roleText}</span>`
+            );
+        });
+        // Form validation
+        $('#editAccountForm').on('submit', function(e) {
+            const password = $('#Account_Password').val();
+            const confirmPassword = $('#Account_ConfirmPassword').val();
+            if (password && password !== confirmPassword) {
+                e.preventDefault();
+                alert('Password and confirm password do not match.');
+                return false;
+            }
+            // Show loading state
+            const submitBtn = $('#saveButton');
+            const originalText = submitBtn.html();
+            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+            submitBtn.prop('disabled', true);
+        });
+    });
+    function fetchRoles() {
+        $.get('/api/accounts/roles', function(data) {
+            if (Array.isArray(data)) {
+                var options = '<option value="">Select Role</option>';
+                var currentRole = $('#roleDropdown').data('current-role');
+                data.forEach(function(role) {
+                    options += `<option value="${role}">${role.charAt(0) + role.slice(1).toLowerCase()}</option>`;
+                });
+                $('#roleDropdown').html(options);
+                $(document).trigger('rolesLoaded');
+            }
+        });
+    }
+</script>
+} 

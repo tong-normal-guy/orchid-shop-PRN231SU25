@@ -43,7 +43,9 @@ namespace OrchidsShop.API.Controllers
         )]
         public async Task<IActionResult> QueryOrders([FromQuery] QueryOrderRequest request)
         {
-            // Get user ID from JWT token
+            if (request.IsManagment != true)
+            {
+                // Get user ID from JWT token
             var userId = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userId == null)
             {
@@ -57,6 +59,7 @@ namespace OrchidsShop.API.Controllers
             
             // Set account ID from token
             request.AccountId = userGuid;
+            }
             
             // Call service and return result
             var result = await _orderService.QueryOrdersAsync(request);

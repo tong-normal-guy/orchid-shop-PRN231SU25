@@ -259,6 +259,37 @@ public class AccountService
     }
 
     /// <summary>
+    /// Retrieves current user profile as a list (following OrchidShop pattern).
+    /// </summary>
+    /// <param name="id">Account ID.</param>
+    /// <returns>OperationResult with list containing single account information.</returns>
+    public async Task<OperationResult<List<QueryAccountResponse>>> GetCurrentProfileAsync(Guid id)
+    {
+        try
+        {
+            var account = _unitOfWork.Repository<Account>()
+                .Get(filter: x => x.Id == id, includeProperties: "Role")
+                .FirstOrDefault();
+
+            if (account == null)
+            {
+                return OperationResult<List<QueryAccountResponse>>.Failure(StatusCode.NotFound,
+                    new List<string> { "Account not found." });
+            }
+
+            var response = _mapper.Map<QueryAccountResponse>(account);
+            var accountList = new List<QueryAccountResponse> { response };
+
+            return OperationResult<List<QueryAccountResponse>>.Success(accountList, StatusCode.Ok, "Account retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            return OperationResult<List<QueryAccountResponse>>.Failure(StatusCode.ServerError,
+                new List<string> { $"An error occurred while retrieving account: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
     /// Updates account information.
     /// </summary>
     /// <param name="id">Account ID to update.</param>
@@ -342,6 +373,31 @@ public class AccountService
         {
             return OperationResult<bool>.Failure(StatusCode.ServerError,
                 new List<string> { $"An error occurred during role creation: {ex.Message}" });
+        }
+    }
+
+    public async Task<OperationResult<List<QueryAccountResponse>>> GetAllAccountsAsync(QueryAccountRequest request)
+    {
+        try
+        {
+            var accounts = _unitOfWork.Repository<Account>().GetWithCount(
+                includeProperties: "Role",
+                filter: request.GetExpressions(),
+                pageIndex: request.PageNumber,
+                pageSize: request.PageSize,
+                orderBy: x => x.OrderByDescending(y => y.Name)
+            );
+            
+            return OperationResult<List<QueryAccountResponse>>.Success(
+                accounts.Data.Select(x => _mapper.Map<QueryAccountResponse>(x)).ToList(),
+                StatusCode.Ok,
+                $"Accounts retrieved successfully. Total: {accounts.Count}"
+            );
+        }
+        catch (Exception ex)
+        {
+            return OperationResult<List<QueryAccountResponse>>.Failure(StatusCode.ServerError,
+                new List<string> { $"An error occurred while retrieving accounts: {ex.Message}" });
         }
     }
     

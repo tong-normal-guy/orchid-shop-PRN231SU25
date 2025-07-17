@@ -18,6 +18,19 @@ public class OrderApiService
     }
 
     /// <summary>
+    /// Lấy danh sách đơn hàng cho admin quản lý
+    /// </summary>
+    /// <param name="queryModel">Tham số truy vấn cho việc lọc và phân trang</param>
+    /// <returns>Danh sách các đơn hàng cho admin</returns>
+    public async Task<ApiResponse<List<OrderModel>>?> GetOrdersForAdminAsync(OrderQueryModel? queryModel = null)
+    {
+        var adminQueryModel = queryModel ?? new OrderQueryModel();
+        adminQueryModel.IsManagment = true; // Set to true for admin management
+        
+        return await GetOrdersAsync(adminQueryModel);
+    }
+
+    /// <summary>
     /// Lấy danh sách đơn hàng với tùy chọn lọc và phân trang
     /// </summary>
     /// <param name="queryModel">Tham số truy vấn cho việc lọc và phân trang</param>
