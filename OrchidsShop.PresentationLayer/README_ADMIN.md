@@ -4,15 +4,20 @@ This document provides comprehensive information about the OrchidsShop admin fun
 
 ## Overview
 
-The OrchidsShop admin system provides a complete management interface for administrators to manage orchids, view statistics, and control the shop's inventory. The admin functionality is built using ASP.NET Razor Pages with a modern, responsive design.
+The OrchidsShop admin system provides a complete management interface for administrators to manage orchids, orders, accounts, view statistics, and control the shop's inventory. The admin functionality is built using ASP.NET Razor Pages with a modern, responsive design.
 
 **✅ Features:**
 - Complete CRUD operations for orchids (Create, Read, Update)
+- Order management with status updates
+- Account management and user control
 - Real-time search and filtering
 - Statistics dashboard
 - Responsive design for all devices
 - Session-based authentication
 - Form validation and error handling
+
+## 🎥 Demo Video
+**Watch the admin functionality in action:** [OrchidsShop Demo](https://youtu.be/-Gb_q9g5eVs)
 
 ## Table of Contents
 
@@ -114,7 +119,44 @@ if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
 
 **Access**: Admin role required
 
-### 2. Create Orchid (`/Admin/CreateOrchid`)
+### 2. Order Management (`/Admin/Orders`)
+
+**Purpose**: Manage all customer orders and update order status.
+
+**Features**:
+- **Order Table**: List all orders with customer information
+- **Status Updates**: Update order status via AJAX calls
+- **Order Statistics**: Overview of order metrics
+- **Filtering**: Filter orders by status, date, and customer
+- **Real-time Updates**: Status changes without page refresh
+
+**URL**: `/Admin/Orders`
+
+**Access**: Admin role required
+
+**Order Statuses**:
+- **Pending**: Order placed but not yet processed
+- **Processing**: Order is being prepared
+- **Shipped**: Order has been shipped
+- **Delivered**: Order has been delivered
+- **Cancelled**: Order has been cancelled
+
+### 3. Account Management (`/Admin/Accounts`)
+
+**Purpose**: View and manage user accounts in the system.
+
+**Features**:
+- **Account Table**: List all user accounts with roles
+- **Role Management**: View user roles and permissions
+- **Account Statistics**: Overview of user metrics
+- **Search & Filter**: Find specific users quickly
+- **User Details**: View detailed account information
+
+**URL**: `/Admin/Accounts`
+
+**Access**: Admin role required
+
+### 4. Create Orchid (`/Admin/CreateOrchid`)
 
 **Purpose**: Form to create new orchids in the system.
 
@@ -137,7 +179,7 @@ if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
 - **Description** (optional): Detailed description
 - **Image URL** (optional): URL for orchid image
 
-### 3. Edit Orchid (`/Admin/EditOrchid/{id}`)
+### 5. Edit Orchid (`/Admin/EditOrchid/{id}`)
 
 **Purpose**: Form to edit existing orchids in the system.
 
@@ -188,6 +230,59 @@ function filterOrchids() {
         } else {
             row.hide();
         }
+    });
+}
+```
+
+### Order Status Management
+
+The order management page includes AJAX-based status updates:
+
+```javascript
+function updateOrderStatusSubmit() {
+    const orderId = $('#orderId').val();
+    const status = $('#orderStatus').val();
+    
+    if (!orderId || !status) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = $('#updateStatusForm button[type="submit"]');
+    const originalText = submitBtn.html();
+    submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
+    submitBtn.prop('disabled', true);
+    
+    // Make API call to update order status
+    fetch('/Admin/Orders?handler=UpdateStatus', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+        },
+        body: JSON.stringify({
+            orderId: orderId,
+            status: status
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message || 'Order status updated successfully!');
+            $('#updateStatusModal').modal('hide');
+            // Refresh the page to show updated status
+            location.reload();
+        } else {
+            showAlert('danger', data.message || 'Failed to update order status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'An error occurred while updating order status');
+    })
+    .finally(() => {
+        submitBtn.prop('disabled', false).html(originalText);
     });
 }
 ```
@@ -248,303 +343,197 @@ Both create and edit forms include comprehensive validation:
 
 ```csharp
 // Server-side validation example
-if (string.IsNullOrWhiteSpace(Orchid.Name))
+public async Task<IActionResult> OnPostAsync()
 {
-    ModelState.AddModelError("Orchid.Name", "Name is required");
-    return Page();
-}
-
-if (!Orchid.CategoryId.HasValue)
-{
-    ModelState.AddModelError("Orchid.CategoryId", "Category is required");
-    return Page();
-}
-
-if (!Orchid.Price.HasValue || Orchid.Price <= 0)
-{
-    ModelState.AddModelError("Orchid.Price", "Valid price is required");
-    return Page();
-}
-```
-
-### Real-time Preview
-
-The create and edit forms include real-time preview functionality:
-
-```javascript
-function updatePreview() {
-    const name = $('#Orchid_Name').val();
-    const categoryId = $('#Orchid_CategoryId').val();
-    const price = $('#Orchid_Price').val();
-    const type = $('#Orchid_IsNatural').val();
-    
-    // Update type preview
-    if (type === 'true') {
-        $('#previewType').text('Natural').removeClass('text-muted').addClass('text-success');
-    } else if (type === 'false') {
-        $('#previewType').text('Artificial').removeClass('text-muted').addClass('text-info');
-    } else {
-        $('#previewType').text('Not selected').removeClass('text-success text-info').addClass('text-muted');
+    if (!ModelState.IsValid)
+    {
+        return Page();
     }
-    
-    // Update category preview
-    if (categoryId) {
-        const categoryName = $('#Orchid_CategoryId option:selected').text();
-        $('#previewCategory').text(categoryName).removeClass('text-muted').addClass('text-primary');
-    } else {
-        $('#previewCategory').text('Not selected').removeClass('text-primary').addClass('text-muted');
+
+    try
+    {
+        var response = await _orchidService.CreateOrchidAsync(orchidRequest);
+        
+        if (response?.Success == true)
+        {
+            TempData["SuccessMessage"] = "Orchid created successfully!";
+            return RedirectToPage("/Admin/Orchids");
+        }
+        else
+        {
+            ModelState.AddModelError("", response?.Message ?? "Failed to create orchid");
+            return Page();
+        }
     }
-    
-    // Update price preview
-    if (price && !isNaN(price)) {
-        $('#previewPrice').text('$' + parseFloat(price).toFixed(2));
-    } else {
-        $('#previewPrice').text('$0.00');
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error creating orchid");
+        ModelState.AddModelError("", "An error occurred while creating the orchid");
+        return Page();
     }
 }
 ```
 
 ## Technical Implementation
 
-### Page Models
-
-Each admin page has a corresponding page model that handles:
-
-- **Authentication**: Checking admin privileges
-- **Data Loading**: Loading orchids, categories, and statistics
-- **Form Processing**: Handling form submissions
-- **Validation**: Server-side validation
-- **Error Handling**: Comprehensive error handling and logging
-
 ### API Integration
 
-Admin pages use the API services to communicate with the backend:
+The admin functionality integrates with the backend API using dedicated services:
 
 ```csharp
-public class OrchidsModel : PageModel
+// Admin order management with IsManagment parameter
+public async Task<ApiResponse<List<OrderModel>>?> GetOrdersForAdminAsync(OrderQueryModel? queryModel = null)
 {
-    private readonly ILogger<OrchidsModel> _logger;
-    private readonly OrchidApiService _orchidService;
-    private readonly CategoryApiService _categoryService;
-    private readonly OrderApiService _orderService;
-    private readonly AccountApiService _accountService;
-
-    public OrchidsModel(
-        ILogger<OrchidsModel> logger, 
-        OrchidApiService orchidService, 
-        CategoryApiService categoryService,
-        OrderApiService orderService,
-        AccountApiService accountService)
-    {
-        _logger = logger;
-        _orchidService = orchidService;
-        _categoryService = categoryService;
-        _orderService = orderService;
-        _accountService = accountService;
-    }
-}
-```
-
-### Model Binding
-
-The admin forms use proper model binding with separate display and request models:
-
-```csharp
-// Display model for showing orchid information
-public OrchidModel OrchidDisplay { get; set; } = new();
-
-// Request model for form binding
-[BindProperty]
-public OrchidRequestModel Orchid { get; set; } = new();
-```
-
-### Error Handling
-
-Comprehensive error handling is implemented throughout:
-
-```csharp
-try
-{
-    var response = await _orchidService.UpdateOrchidAsync(orchidRequest);
+    var adminQueryModel = queryModel ?? new OrderQueryModel();
+    adminQueryModel.IsManagment = true; // Set to true for admin management
     
-    if (response?.Success == true)
-    {
-        _logger.LogInformation("Successfully updated orchid with ID: {Id}", Orchid.Id);
-        TempData["SuccessMessage"] = "Orchid updated successfully!";
-        return RedirectToPage("/Admin/Orchids");
-    }
-    else
-    {
-        _logger.LogWarning("Failed to update orchid. Message: {Message}", response?.Message);
-        TempData["ErrorMessage"] = response?.Message ?? "Failed to update orchid.";
-        return Page();
-    }
+    return await GetOrdersAsync(adminQueryModel);
 }
-catch (Exception ex)
+```
+
+### Session Management
+
+Admin sessions are managed securely:
+
+```csharp
+// Check admin privileges
+public async Task<IActionResult> OnGetAsync()
 {
-    _logger.LogError(ex, "Error updating orchid");
-    TempData["ErrorMessage"] = "An error occurred while updating the orchid. Please try again.";
+    var userRole = HttpContext.Session.GetString("UserRole");
+    if (string.IsNullOrEmpty(userRole) || userRole != "ADMIN")
+    {
+        TempData["ErrorMessage"] = "Access denied. Admin privileges required.";
+        return RedirectToPage("/Auth/Login");
+    }
+    
+    await LoadDataAsync();
     return Page();
 }
 ```
 
-### Responsive Design
+### Error Handling
 
-The admin interface is fully responsive with:
+Comprehensive error handling throughout the admin interface:
 
-- **Bootstrap 5**: Modern CSS framework
-- **Custom CSS**: Gradient headers and modern styling
-- **Mobile-first**: Optimized for all screen sizes
-- **Touch-friendly**: Large buttons and touch targets
+```csharp
+private async Task LoadOrchidsAsync()
+{
+    try
+    {
+        var response = await _orchidService.GetOrchidsAsync(new OrchidQueryModel
+        {
+            PageSize = 100,
+            SortColumn = "Name",
+            SortDir = "Asc"
+        });
+
+        if (response?.Success == true && response.Data != null)
+        {
+            Orchids = response.Data;
+        }
+        else
+        {
+            _logger.LogWarning("Failed to load orchids. Message: {Message}", response?.Message);
+            Orchids = new List<OrchidModel>();
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error loading orchids for admin");
+        Orchids = new List<OrchidModel>();
+    }
+}
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### 1. Access Denied Error
+1. **Access Denied Errors**
+   - **Cause**: User not logged in or not admin role
+   - **Solution**: Ensure user is logged in with admin credentials
 
-**Problem**: "Access denied. Admin privileges required."
+2. **API Connection Errors**
+   - **Cause**: Backend API not running
+   - **Solution**: Start the OrchidsShop.API project
 
-**Solution**:
-1. Ensure you're logged in with admin credentials
-2. Check that your account has ADMIN role
-3. Clear browser session and login again
-4. Verify session configuration in `Program.cs`
+3. **Form Validation Errors**
+   - **Cause**: Invalid form data
+   - **Solution**: Check form validation messages and required fields
 
-#### 2. API Connection Issues
+4. **Session Timeout**
+   - **Cause**: Session expired (30-minute timeout)
+   - **Solution**: Re-login to admin account
 
-**Problem**: "Failed to load orchids" or similar API errors.
+### Debug Tips
 
-**Solution**:
-1. Ensure OrchidsShop.API is running on `http://localhost:5077`
-2. Check network connectivity
-3. Verify API base URL in `StringValue.cs`
-4. Check API logs for errors
+1. **Check Session Data**:
+   ```csharp
+   var userRole = HttpContext.Session.GetString("UserRole");
+   var userEmail = HttpContext.Session.GetString("UserEmail");
+   _logger.LogInformation("User: {Email}, Role: {Role}", userEmail, userRole);
+   ```
 
-#### 3. Form Validation Errors
+2. **Verify API Responses**:
+   ```csharp
+   _logger.LogInformation("API Response: {Response}", JsonSerializer.Serialize(response));
+   ```
 
-**Problem**: Form submissions fail with validation errors.
-
-**Solution**:
-1. Ensure all required fields are filled
-2. Check field formats (price must be positive number)
-3. Verify category selection
-4. Check browser console for JavaScript errors
-
-#### 4. Image Loading Issues
-
-**Problem**: Orchid images don't load properly.
-
-**Solution**:
-1. Verify image URLs are valid
-2. Check CORS settings if using external images
-3. Ensure default image path exists: `/assets/logos/orchid-openai.png`
-4. Check browser network tab for image loading errors
-
-### Debugging
-
-#### Enable Detailed Logging
-
-Add detailed logging to troubleshoot issues:
-
-```csharp
-// In appsettings.Development.json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "OrchidsShop.PresentationLayer": "Debug"
-    }
-  }
-}
-```
-
-#### Check API Responses
-
-Use browser developer tools to inspect API responses:
-
-1. Open browser developer tools (F12)
-2. Go to Network tab
-3. Perform admin actions
-4. Check API request/response details
-
-#### Verify Session Data
-
-Check session data in browser developer tools:
-
-1. Open browser developer tools (F12)
-2. Go to Application tab
-3. Check Session Storage for user data
-4. Verify UserRole is set to "ADMIN"
+3. **Check Configuration**:
+   ```csharp
+   _logger.LogInformation("API Base URL: {BaseUrl}", StringValue.BaseUrl);
+   ```
 
 ## Future Enhancements
 
 ### Planned Features
 
 1. **Delete Functionality**
-   - Add delete buttons to orchid list
-   - Implement soft delete with confirmation
-   - Add bulk delete operations
+   - Add orchid deletion with confirmation dialogs
+   - Soft delete for data integrity
 
-2. **Image Upload**
-   - File upload for orchid images
-   - Image resizing and optimization
-   - Cloud storage integration
-
-3. **Bulk Operations**
+2. **Bulk Operations**
    - Bulk category assignment
    - Bulk price updates
-   - Import/export functionality
+   - Bulk status updates for orders
 
-4. **Advanced Filtering**
-   - Date range filtering
-   - Price range filtering
-   - Status-based filtering
+3. **Advanced Analytics**
+   - Sales analytics dashboard
+   - Customer insights
+   - Inventory tracking
 
-5. **User Management**
-   - Admin user management interface
-   - Role assignment and management
-   - User activity logging
+4. **Image Management**
+   - File upload for orchid images
+   - Image optimization and resizing
+   - Multiple image support
 
-6. **Analytics Dashboard**
-   - Sales analytics
-   - Popular orchids tracking
-   - Customer behavior insights
+5. **Enhanced Security**
+   - JWT token authentication
+   - Two-factor authentication
+   - Role-based permissions
 
-### Technical Improvements
+6. **Real-time Updates**
+   - SignalR integration for live updates
+   - Real-time notifications
+   - Live order tracking
 
-1. **Performance Optimization**
-   - Implement caching for frequently accessed data
-   - Add pagination for large datasets
-   - Optimize database queries
+### Performance Improvements
 
-2. **Security Enhancements**
-   - Implement JWT tokens
-   - Add two-factor authentication
-   - Enhance session security
+1. **Caching**
+   - Response caching for frequently accessed data
+   - Memory caching for statistics
 
-3. **UI/UX Improvements**
-   - Add dark mode support
-   - Implement drag-and-drop functionality
-   - Add keyboard shortcuts
+2. **Pagination Optimization**
+   - Virtual scrolling for large datasets
+   - Lazy loading for images
 
-4. **API Enhancements**
-   - Add real-time updates with SignalR
-   - Implement API versioning
-   - Add rate limiting
+3. **API Optimization**
+   - Batch API calls
+   - Optimized queries
 
-## Support
+## 🎥 Demo Video
+**Watch the admin functionality in action:** [OrchidsShop Demo](https://youtu.be/-Gb_q9g5eVs)
 
-For technical support or questions about the admin functionality:
+---
 
-1. **Check Logs**: Review application logs for error details
-2. **API Documentation**: Refer to `README_API_INTEGRATION.md`
-3. **Database**: Verify database connectivity and data integrity
-4. **Network**: Ensure proper network configuration
-
-## Conclusion
-
-The OrchidsShop admin system provides a comprehensive, user-friendly interface for managing orchid inventory. With its modern design, robust validation, and responsive layout, it offers administrators a powerful tool for maintaining the shop's product catalog.
-
-The system is built with scalability in mind, making it easy to add new features and enhance existing functionality as the business grows. 
+**✅ All admin features tested and working with real backend API** 
