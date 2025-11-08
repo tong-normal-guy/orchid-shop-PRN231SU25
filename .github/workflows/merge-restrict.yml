@@ -1,0 +1,6 @@
+name: Merge Restrict 
+on: 
+  pull_request:
+    branches: 
+      - main
+jobs:
